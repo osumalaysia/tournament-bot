@@ -1,9 +1,8 @@
 const { Message } = require("discord.js");
-const { DISCORD_TOKEN,CLIENT_ID } = process.env;
+require("dotenv").config();
+const { DISCORD_TOKEN } = process.env;
 const { Client, GatewayIntentBits, MessageFlags, Partials,} = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
-
-
 
 function handleError(err: unknown): string {
     return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
@@ -44,10 +43,10 @@ client.on("interactionCreate", async (interaction:any) => {
     }
 });
 
-
 (async () => {
     try {
         await client.login(DISCORD_TOKEN);
+        console.log("Yoru logged in successfully at " + new Date().toLocaleString());
     } catch (error) {
         console.error(`Error: ${error}`);
     }
