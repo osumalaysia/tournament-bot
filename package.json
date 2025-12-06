@@ -10,6 +10,6 @@
     "build": "tsc",
     "deploy": "ts-node src/deployer.ts",
     "start": "ts-node src/index.ts",
-    "start:prod": "node dist/deployer.js && node dist/index.js"
+    "start:prod": "node dist/deploy.js && node dist/index.js"
   }
 }
