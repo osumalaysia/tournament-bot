@@ -10,4 +10,4 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
-CMD ["sh", "-c", "node dist/deployer.js && node dist/index.js"]
+CMD ["sh", "-c", "node dist/deploy.js && node dist/index.js"]

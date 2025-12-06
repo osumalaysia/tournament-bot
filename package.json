@@ -3,12 +3,13 @@
     "discord.js": "^14.25.1",
     "dotenv": "^17.2.3",
     "google-auth-library": "^10.5.0",
-    "google-spreadsheet": "^5.0.2"
+    "google-spreadsheet": "^5.0.2",
+    "typescript": "^5.9.3"
   },
-"scripts": {
+  "scripts": {
     "build": "tsc",
     "deploy": "ts-node src/deployer.ts",
     "start": "ts-node src/index.ts",
     "start:prod": "node dist/deployer.js && node dist/index.js"
-}
+  }
 }
