@@ -17,24 +17,24 @@ const convertDateFormat = (dateStr: string): number => {
     const day = parseInt(parts[1], 10);
 
     const newDate = new Date(year, month - 1, day);
-    const timezoneOffset = newDate.getTimezoneOffset() * 60000;
+    const timezoneOffset = newDate.getTimezoneOffset() * 60 * 1000;
     
-    return ((newDate.getTime() - timezoneOffset) / 86400000) + 25569;
+    return ((newDate.getTime() - timezoneOffset) / (1000*60*60*24)) + 25569;
 };
 
-const convertDate = (dateStr: string, timeStr?: string): Date | null => {
-    const [mStr, dStr] = (dateStr || "").split("-");
-    const month = Number(mStr);
-    const day = Number(dStr);
+const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
+    const [m, d] = (dateMatch || "").split("-");
+    const month = Number(m);
+    const day = Number(d);
 
     if (!month || !day || month < 1 || month > 12 || day < 1 || day > 31) return null;
 
     const year = new Date().getFullYear();
     let hours = 0, minutes = 0;
 
-    if (timeStr) {
-        hours = Math.floor(Number(timeStr) / 100);
-        minutes = Number(timeStr) % 100;
+    if (timeMatch) {
+        hours = Math.floor(Number(timeMatch) / 100);
+        minutes = Number(timeMatch) % 100;
         if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
     }
 
@@ -43,7 +43,7 @@ const convertDate = (dateStr: string, timeStr?: string): Date | null => {
 };
 
 const toDiscordTimestamp = (date: Date): string => {
-    const unix = Math.floor(date.getTime() / 1000);
+    const unix = Math.floor(date.getTime() / 1000) - 8*60*60;
     return `<t:${unix}:f>`;
 };
 
@@ -85,7 +85,7 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: any) {
-    const matchId = interaction.options.getString("matchid");
+    const matchId = interaction.options.getString("matchid").toUpperCase();
     const newTimeStr = interaction.options.getString("newtime");
     const newDateStr = interaction.options.getString("newdate");
 

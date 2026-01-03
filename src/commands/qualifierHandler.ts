@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
+const tryout_roles = "1056529022202433567";
 
 const MATCH_ID_COL = "A";                
 const SLOT_COLUMNS = [
@@ -46,7 +47,14 @@ function findFirstEmptySlot(sheet:any, matchRow:any) {
 }
 
 async function execute(interaction:any) {
-  const matchId = interaction.options.getString("matchid");
+  if (tryout_roles) {
+    if (!interaction.inGuild() || !interaction.member?.roles?.cache?.has(tryout_roles)) {
+      await interaction.reply({ content: "why?", flags: 1 << 6 });
+      return;
+    }
+  }
+
+  const matchId = interaction.options.getString("matchid").toUpperCase();
   const userId = interaction.user.id;
 
   const doc = getDoc();
@@ -86,7 +94,7 @@ async function execute(interaction:any) {
 
   await sheet.saveUpdatedCells();
 
-  await interaction.reply(`You have signed up for qualifier ${matchId} in slot ${targetCol}`);
+  await interaction.reply(`You have signed up for qualifier ${matchId} in column ${targetCol}`);
 }
 
 module.exports = { data, execute };
