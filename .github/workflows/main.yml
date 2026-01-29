@@ -8,12 +8,11 @@ on:
 jobs:
   build-docker-image:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
-          registry: osumalaysia.docker-registry.amamiya-kokoro.mya.moe
+          registry: forgejo.amamiya-kokoro.mya.moe/osumalaysia
           username: ${{ vars.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Set up Docker Buildx
@@ -22,4 +21,4 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags: osumalaysia.docker-registry.amamiya-kokoro.mya.moe/tournament-bot:main
+          tags: forgejo.amamiya-kokoro.mya.moe/osumalaysia/tournament-bot:latest
