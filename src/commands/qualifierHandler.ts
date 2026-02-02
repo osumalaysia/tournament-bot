@@ -15,9 +15,9 @@ const data = new SlashCommandBuilder()
   .setDescription("Sign up for a qualifier lobby")
   .addStringOption((id: any) =>
     id.setName("matchid").setDescription("Match ID from the sheet").setRequired(true)
-      .addStringOption((username: any) =>
-        username.setName("name").setDescription("username").setRequired(true)
-      )
+  )
+  .addStringOption((username: any) =>
+    username.setName("name").setDescription("username").setRequired(true)
   );
 
 
