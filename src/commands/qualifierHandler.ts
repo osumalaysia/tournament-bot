@@ -109,7 +109,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     
     if (existingUser) {
       if (existingUser.row === matchRow) {
-        await interaction.editReply(`You are already signed up for Qualifier Lobby: **${matchId}**.`);
+        await interaction.editReply(`You cannot sign up for the same Qualifier Lobby: **${matchId}**.`);
         return;
       }
       sheet.getCellByA1(`${existingUser.col}${existingUser.row}`).value = "";
@@ -124,7 +124,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
     await sheet.saveUpdatedCells();
 
-    await interaction.editReply(`Successfully Added **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`);
+    await interaction.followUp({content: `Successfully Assign **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`,ephemeral:false});
 
   } catch (error) {
     console.error("Error updating qualifier sheet:", error);
