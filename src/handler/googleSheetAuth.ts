@@ -12,7 +12,7 @@ let doc:any;
 
 const getDoc = () => {
   if (!doc) {
-    doc = new GoogleSpreadsheet("1j7ykmFK_Y1Xk9eP7JiQjTpduXumaJjqNAspZLbcv584", serviceAccountAuth);
+    doc = new GoogleSpreadsheet("1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ", serviceAccountAuth);
   }
   return doc;
 }

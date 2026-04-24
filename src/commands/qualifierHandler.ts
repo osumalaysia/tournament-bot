@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
-const tryout_roles = "1056529022202433567";
+const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
+const { ChatInputCommandInteraction } = require("discord.js");
+const tryout_roles = "1458174201033654412";
 
 const MATCH_ID_COL = "B";
 const SLOT_COLUMNS = [
@@ -15,14 +17,9 @@ const data = new SlashCommandBuilder()
   .setDescription("Sign up for a qualifier lobby")
   .addStringOption((id: any) =>
     id.setName("matchid").setDescription("Match ID from the sheet").setRequired(true)
-  )
-  .addStringOption((username: any) =>
-    username.setName("name").setDescription("username").setRequired(true)
   );
 
-
-
-function findMatchID(sheet: any, matchId: any) {
+function findMatchRow(sheet: typeof GoogleSpreadsheetWorksheet, matchId: string): number {
   for (let row = START_ROW; row <= END_ROW; row++) {
     const idVal = sheet.getCellByA1(`${MATCH_ID_COL}${row}`).value;
     if (idVal && idVal.toString() === matchId) return row;
@@ -30,11 +27,11 @@ function findMatchID(sheet: any, matchId: any) {
   return -1;
 }
 
-function checkIfUserExist(sheet: any, username: any) {
+function findExistingUser(sheet: typeof GoogleSpreadsheetWorksheet, username: string): { row: number; col: string } | null {
   for (let row = START_ROW; row <= END_ROW; row++) {
     for (const col of SLOT_COLUMNS) {
-      const v = sheet.getCellByA1(`${col}${row}`).value;
-      if (v && v.toString() === username) {
+      const cellValue = sheet.getCellByA1(`${col}${row}`).value;
+      if (cellValue && cellValue.toString() === username) {
         return { row, col };
       }
     }
@@ -42,64 +39,97 @@ function checkIfUserExist(sheet: any, username: any) {
   return null;
 }
 
-function findFirstEmptySlot(sheet: any, matchRow: any) {
+function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: number): string | null {
   for (const col of SLOT_COLUMNS) {
-    const cell = sheet.getCellByA1(`${col}${matchRow}`);
-    const v = cell.value;
-    if (!v || v.toString().trim() === "") return col;
+    const cellValue = sheet.getCellByA1(`${col}${matchRow}`).value;
+    if (!cellValue || cellValue.toString().trim() === "") {
+      return col;
+    }
   }
   return null;
 }
 
-async function execute(interaction: any) {
-  if (tryout_roles) {
-    if (!interaction.inGuild() || !interaction.member?.roles?.cache?.has(tryout_roles)) {
-      await interaction.reply({ content: "why?", flags: 1 << 6 });
+export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
+  const memberRoles = interaction.member?.roles;
+  if (!interaction.inGuild() || (memberRoles && !Array.isArray(memberRoles) && !memberRoles.cache?.has(tryout_roles))) {
+    await interaction.reply({ 
+      content: "You do not have the required role to sign up for qualifiers.", 
+      ephemeral: true 
+    });
+    return;
+  }
+
+  const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
+
+  await interaction.deferReply({ ephemeral: true });
+
+  try {
+    const doc = await getDoc(); 
+
+    const playerSheet = doc.sheetsByTitle["PlayerList"];
+    if (!playerSheet) {
+      await interaction.editReply("Error: Sheet 'PlayerList' could not be found.");
       return;
     }
+
+    const rowCount = playerSheet.rowCount || 1000;
+    await playerSheet.loadCells(`A1:C${rowCount}`);
+
+    let username: string | null = null;
+    for (let r = 1; r <= rowCount; r++) {
+      const discordIdCell = playerSheet.getCellByA1(`C${r}`).value;
+      if (discordIdCell && discordIdCell.toString().trim() === interaction.user.id) {
+        username = playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+        break;
+      }
+    }
+
+    if (!username) {
+      await interaction.editReply("Error: Could not find your Discord ID in the registered player list.");
+      return;
+    }
+
+    const sheet = doc.sheetsByTitle[SHEET_TITLE];
+    
+    if (!sheet) {
+      await interaction.editReply(`Error: Sheet '${SHEET_TITLE}' could not be found.`);
+      return;
+    }
+
+    const endCol = SLOT_COLUMNS[SLOT_COLUMNS.length - 1]; 
+    await sheet.loadCells(`A${START_ROW}:${endCol}${END_ROW}`);
+
+    const matchRow = findMatchRow(sheet, matchId);
+    if (matchRow === -1) {
+      await interaction.editReply(`Could not find Qualifier ID: **${matchId}**`);
+      return;
+    }
+
+    const existingUser = findExistingUser(sheet, username);
+    
+    if (existingUser) {
+      if (existingUser.row === matchRow) {
+        await interaction.editReply(`You are already signed up for Qualifier Lobby: **${matchId}**.`);
+        return;
+      }
+      sheet.getCellByA1(`${existingUser.col}${existingUser.row}`).value = "";
+    }
+
+    const targetCol = findFirstEmptySlot(sheet, matchRow);
+    if (!targetCol) {
+      await interaction.editReply(`Qualifier **${matchId}** is currently full.`);
+      return;
+    }
+
+    sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
+    await sheet.saveUpdatedCells();
+
+    await interaction.editReply(`Successfully Added **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`);
+
+  } catch (error) {
+    console.error("Error updating qualifier sheet:", error);
+    await interaction.editReply("An error occurred while trying to update the schedule. Please try again later.");
   }
-
-  const matchId = interaction.options.getString("matchid").toUpperCase();
-  const username = interaction.options.getString("name");
-
-  const doc = getDoc();
-  await doc.updateProperties({ timeZone: "GMT+08:00" });
-
-  const sheet = doc.sheetsByTitle[SHEET_TITLE];
-  if (!sheet) {
-    await interaction.reply({ content: `Sheet '${SHEET_TITLE}' not found`, flags: 1 << 6 });
-    return;
-  }
-
-  await sheet.loadCells(`A${START_ROW}:R${END_ROW}`);
-
-  const matchRow = findMatchID(sheet, matchId);
-  if (matchRow === -1) {
-    await interaction.reply({ content: `Qualifier ID ${matchId} not found`, flags: 1 << 6 });
-    return;
-  }
-
-  const existing = checkIfUserExist(sheet, username);
-  if (existing && existing.row === matchRow) {
-    await interaction.reply({ content: `Why are you signing the same Qualifier Lobby: **${matchId}**`, flags: 1 << 6 });
-    return;
-  }
-
-  if (existing) {
-    sheet.getCellByA1(`${existing.col}${existing.row}`).value = "";
-  }
-
-  const targetCol = findFirstEmptySlot(sheet, matchRow);
-  if (!targetCol) {
-    await interaction.reply({ content: `Qualifier: **${matchId}** Slot is full`, flags: 1 << 6 });
-    return;
-  }
-
-  sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
-
-  await sheet.saveUpdatedCells();
-
-  await interaction.reply(`You have added ${username} up for qualifier ${matchId} in column ${targetCol}`);
 }
 
 module.exports = { data, execute };
