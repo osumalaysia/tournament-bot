@@ -1,11 +1,11 @@
+const guilds = ["905398607895752735", "1457804754720919565"];
 const { REST, Routes } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 const DISCORD_TOKEN_DEPLOY = process.env.DISCORD_TOKEN;
 const CLIENT_ID_DEPLOY = process.env.CLIENT_ID;
-const GUILD_IDS_RAW = process.env.GUILD_IDS || process.env.GUILD_ID || "";
-const GUILD_IDS = GUILD_IDS_RAW.split(",").map((id: string) => id.trim()).filter((id: string) => id.length > 0);
+const GUILD_IDS = guilds.length > 0 ? guilds : (process.env.GUILD_ID ? [process.env.GUILD_ID] : []);
 
 const commands: any[] = [];
 const commandsPath = path.join(__dirname, "commands");
