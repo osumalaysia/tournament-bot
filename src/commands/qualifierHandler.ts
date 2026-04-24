@@ -52,30 +52,28 @@ function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: 
 export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
   const memberRoles = interaction.member?.roles;
   if (!interaction.inGuild() || (memberRoles && !Array.isArray(memberRoles) && !memberRoles.cache?.has(tryout_roles))) {
-    await interaction.reply({ 
-      content: "You do not have the required role to sign up for qualifiers.", 
-      ephemeral: true 
+    await interaction.reply({
+      content: "You do not have the required role to sign up for qualifiers.",
+      ephemeral: true
     });
     return;
   }
   if (interaction.channelId !== channel) {
-    await interaction.reply({ 
-      content: "wrong channel blud", 
-      ephemeral: true 
+    await interaction.reply({
+      content: "wrong channel blud",
+      ephemeral: true
     });
     return;
   }
 
   const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
 
-  await interaction.deferReply({ ephemeral: true });
-
   try {
-    const doc = await getDoc(); 
+    const doc = await getDoc();
 
     const playerSheet = doc.sheetsByTitle["PlayerList"];
     if (!playerSheet) {
-      await interaction.editReply("Error: Sheet 'PlayerList' could not be found.");
+      await interaction.reply({ content: "Error: Sheet 'PlayerList' could not be found.", ephemeral: true });
       return;
     }
 
@@ -92,31 +90,31 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
     if (!username) {
-      await interaction.editReply("Error: Could not find your Discord ID in the registered player list.");
+      await interaction.reply({ content: "Error: Could not find your Discord ID in the registered player list.", ephemeral: true });
       return;
     }
 
     const sheet = doc.sheetsByTitle[SHEET_TITLE];
-    
+
     if (!sheet) {
-      await interaction.editReply(`Error: Sheet '${SHEET_TITLE}' could not be found.`);
+      await interaction.reply({ content: `Error: Sheet '${SHEET_TITLE}' could not be found.`, ephemeral: true });
       return;
     }
 
-    const endCol = SLOT_COLUMNS[SLOT_COLUMNS.length - 1]; 
+    const endCol = SLOT_COLUMNS[SLOT_COLUMNS.length - 1];
     await sheet.loadCells(`A${START_ROW}:${endCol}${END_ROW}`);
 
     const matchRow = findMatchRow(sheet, matchId);
     if (matchRow === -1) {
-      await interaction.editReply(`Could not find Qualifier ID: **${matchId}**`);
+      await interaction.reply({ content: `Could not find Qualifier ID: **${matchId}**`, ephemeral: true });
       return;
     }
 
     const existingUser = findExistingUser(sheet, username);
-    
+
     if (existingUser) {
       if (existingUser.row === matchRow) {
-        await interaction.editReply(`You cannot sign up for the same Qualifier Lobby: **${matchId}**.`);
+        await interaction.reply({ content: `You cannot sign up for the same Qualifier Lobby: **${matchId}**.`, ephemeral: true });
         return;
       }
       sheet.getCellByA1(`${existingUser.col}${existingUser.row}`).value = "";
@@ -124,18 +122,18 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
 
     const targetCol = findFirstEmptySlot(sheet, matchRow);
     if (!targetCol) {
-      await interaction.editReply(`Qualifier **${matchId}** is currently full.`);
+      await interaction.reply({ content: `Qualifier **${matchId}** is currently full.`, ephemeral: true });
       return;
     }
 
     sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
     await sheet.saveUpdatedCells();
 
-    await interaction.followUp({content: `Successfully Assign **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`,ephemeral:false});
+    await interaction.reply({ content: `Successfully Assign **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`, ephemeral: false });
 
   } catch (error) {
     console.error("Error updating qualifier sheet:", error);
-    await interaction.editReply("An error occurred while trying to update the schedule. Please try again later.");
+    await interaction.reply({ content: "An error occurred while trying to update the schedule. Please try again later.", ephemeral: true });
   }
 }
 
