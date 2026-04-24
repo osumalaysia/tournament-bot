@@ -3,7 +3,7 @@ const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
 const tryout_roles = "1458174201033654412";
-
+const channel = "1496102471527825569";
 const MATCH_ID_COL = "B";
 const SLOT_COLUMNS = [
   "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U"
@@ -54,6 +54,13 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
   if (!interaction.inGuild() || (memberRoles && !Array.isArray(memberRoles) && !memberRoles.cache?.has(tryout_roles))) {
     await interaction.reply({ 
       content: "You do not have the required role to sign up for qualifiers.", 
+      ephemeral: true 
+    });
+    return;
+  }
+  if (interaction.channelId !== channel) {
+    await interaction.reply({ 
+      content: "wrong channel blud", 
       ephemeral: true 
     });
     return;
