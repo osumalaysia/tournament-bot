@@ -80,7 +80,7 @@ export async function execute(interaction: any) {
   const col = roleColumnMap[role];
   if (!col) return interaction.editReply({ content: "Invalid role." });
 
-  const doc = getDoc();
+  const doc = await getDoc();
   await doc.updateProperties({ timeZone: TIMEZONE_OFFSET});
   const sheet = doc.sheetsByTitle[SHEET_NAME];
   if (!sheet) return interaction.editReply({ content: `Sheet '${SHEET_NAME}' not found.` });

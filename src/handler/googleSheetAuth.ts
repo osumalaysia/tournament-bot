@@ -10,9 +10,10 @@ const serviceAccountAuth = new JWT({
 
 let doc:any;
 
-const getDoc = () => {
+const getDoc = async () => {
   if (!doc) {
     doc = new GoogleSpreadsheet("1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ", serviceAccountAuth);
+    await doc.loadInfo();
   }
   return doc;
 }

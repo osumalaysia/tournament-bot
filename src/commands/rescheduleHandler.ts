@@ -92,7 +92,7 @@ export async function execute(interaction: any) {
     const dateObj = convertDate(newDateStr, newTimeStr);
     if (!dateObj) return interaction.reply({ content: "Invalid date/time format.", ephemeral: true });
 
-    const doc = getDoc();
+    const doc = await getDoc();
     await doc.updateProperties({ timeZone: TIMEZONE_OFFSET_GMT8 });
     
     const sheet = doc.sheetsByTitle[SHEET_NAME];
