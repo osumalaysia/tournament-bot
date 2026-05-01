@@ -2,15 +2,15 @@ const { SlashCommandBuilder } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
-const tryout_roles = "1458174201033654412";
-const channel = "1496102471527825569";
 const MATCH_ID_COL = "B";
 const SLOT_COLUMNS = [
   "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U"
 ];
 const START_ROW = 3;
-const END_ROW = 30;
+const END_ROW = 100;
 const SHEET_TITLE = "Schedule";
+const tryout_roles = "1495676307164500123";
+const channel = "1499060711072989184";
 
 const data = new SlashCommandBuilder()
   .setName("qualifier")
@@ -127,6 +127,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
     sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
+    playerSheet.getCellByA1(`D${matchRow}`).value = matchId;
     await sheet.saveUpdatedCells();
 
     await interaction.reply({ content: `Successfully Assign **${username}** to qualifier **${matchId}** at (Slot ${targetCol}).`, ephemeral: false });
