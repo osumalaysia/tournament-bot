@@ -93,9 +93,8 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
-    const lastRow = await sheet.getRows() || [];
     const lastCol = CONFIG.SLOT_COLUMNS[CONFIG.SLOT_COLUMNS.length - 1];
-    await sheet.loadCells(`A1:${lastCol}${lastRow.length}`);
+    await sheet.loadCells(`A1:${lastCol}100`);
 
     const matchRow = findMatchRow(sheet, matchId);
     if (matchRow === -1) {
