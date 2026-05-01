@@ -51,7 +51,7 @@ function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: 
 }
 
 async function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): Promise<string | null> {
-  await playerSheet.loadCells(`A1:C100`);
+  await playerSheet.loadCells(`A1:D200`);
 
   for (let r = 1; r <= 200; r++) {
     const discordIdCell = playerSheet.getCellByA1(`C${r}`).value;
