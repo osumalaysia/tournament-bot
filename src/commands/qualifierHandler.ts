@@ -9,7 +9,10 @@ const CONFIG = {
   PLAYER_SHEET: "PlayerList",
   TRYOUT_ROLE_ID: "1495676307164500123",
   SIGNUP_CHANNEL_ID: "1499060711072989184",
+  COOLDOWN_SECONDS: 20,
 };
+
+const cooldownMap = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
   .setName("qualifier")
@@ -18,7 +21,7 @@ export const data = new SlashCommandBuilder()
     id.setName("matchid").setDescription("Match ID from the sheet").setRequired(true)
   );
 
-function findMatchRow(sheet:typeof GoogleSpreadsheetWorksheet, matchId: string): number {
+function findMatchRow(sheet: typeof GoogleSpreadsheetWorksheet, matchId: string): number {
   for (let row = 1; row <= 51; row++) {
     const cell = sheet.getCellByA1(`${CONFIG.MATCH_ID_COL}${row}`);
     if (cell.value?.toString().toUpperCase() === matchId.toUpperCase()) {
@@ -65,6 +68,19 @@ async function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWor
 }
 
 export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
+  const userId = interaction.user.id;
+
+  const now = Date.now();
+  if (cooldownMap.has(userId)) {
+    const expirationTime = cooldownMap.get(userId)!;
+    if (now < expirationTime) {
+      const timeLeft = Math.round((expirationTime - now) / 1000);
+      await interaction.reply({ content: `Please wait ${timeLeft} more second(s) before using this command again.`, ephemeral: true });
+      return;
+    }
+  }
+
+  cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
   if (interaction.channelId !== CONFIG.SIGNUP_CHANNEL_ID) {
     await interaction.reply({ content: "wrong channel blud", ephemeral: true });
     return;
@@ -78,14 +94,16 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     return;
   }
 
-  await interaction.deferReply({ ephemeral: true });
+
+
+  await interaction.deferReply({ ephemeral: false });
 
   try {
     const doc = await getDoc();
     const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
 
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    const username = await getUsernameFromDiscordId(playerSheet, interaction.user.id,matchId);
+    const username = await getUsernameFromDiscordId(playerSheet, interaction.user.id, matchId);
 
     if (!username) {
       await interaction.editReply("Error: Discord ID not found in PlayerList.");
@@ -113,7 +131,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
 
     const targetCol = findFirstEmptySlot(sheet, matchRow);
     if (!targetCol) {
-      await interaction.editReply(`Qualifier **${matchId}** is full.`);
+      await interaction.editReply(`Qualifier **${matchId}** is full.Please try other lobby`);
       return;
     }
 
