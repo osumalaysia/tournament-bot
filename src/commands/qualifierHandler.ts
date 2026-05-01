@@ -51,7 +51,7 @@ function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: 
 }
 
 async function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): Promise<string | null> {
-  const rowCount = playerSheet.rowCount || 1000;
+  const rowCount = await playerSheet.getRows() || 1000;
   await playerSheet.loadCells(`A1:C${rowCount}`);
 
   for (let r = 1; r <= rowCount; r++) {
@@ -94,8 +94,9 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
+    const lastRow = await sheet.getRows() || [];
     const lastCol = CONFIG.SLOT_COLUMNS[CONFIG.SLOT_COLUMNS.length - 1];
-    await sheet.loadCells(`A1:${lastCol}${sheet.rowCount}`);
+    await sheet.loadCells(`A1:${lastCol}${lastRow.length}`);
 
     const matchRow = findMatchRow(sheet, matchId);
     if (matchRow === -1) {
