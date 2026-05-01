@@ -19,7 +19,7 @@ export const data = new SlashCommandBuilder()
   );
 
 function findMatchRow(sheet:typeof GoogleSpreadsheetWorksheet, matchId: string): number {
-  for (let row = 1; row <= sheet.rowCount; row++) {
+  for (let row = 1; row <= 51; row++) {
     const cell = sheet.getCellByA1(`${CONFIG.MATCH_ID_COL}${row}`);
     if (cell.value?.toString().toUpperCase() === matchId.toUpperCase()) {
       return row;
@@ -29,7 +29,7 @@ function findMatchRow(sheet:typeof GoogleSpreadsheetWorksheet, matchId: string):
 }
 
 function findExistingUser(sheet: typeof GoogleSpreadsheetWorksheet, username: string): { row: number; col: string } | null {
-  for (let row = 1; row <= sheet.rowCount; row++) {
+  for (let row = 1; row <= 51; row++) {
     for (const col of CONFIG.SLOT_COLUMNS) {
       const cellValue = sheet.getCellByA1(`${col}${row}`).value;
       if (cellValue?.toString() === username) {
@@ -51,10 +51,9 @@ function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: 
 }
 
 async function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): Promise<string | null> {
-  const rowCount = await playerSheet.getRows() || 1000;
-  await playerSheet.loadCells(`A1:C${rowCount}`);
+  await playerSheet.loadCells(`A1:C100`);
 
-  for (let r = 1; r <= rowCount; r++) {
+  for (let r = 1; r <= 200; r++) {
     const discordIdCell = playerSheet.getCellByA1(`C${r}`).value;
     if (discordIdCell?.toString().trim() === discordId) {
       playerSheet.getCellByA1(`D${r}`).value = matchId;
