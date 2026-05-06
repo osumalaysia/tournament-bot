@@ -1,7 +1,8 @@
 const { Message } = require("discord.js");
 require("dotenv").config();
 const { DISCORD_TOKEN } = process.env;
-const { Client, GatewayIntentBits, MessageFlags, Partials,} = require("discord.js");
+const Util = require('util');
+const { Client, GatewayIntentBits, MessageFlags, Partials, } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
 
 function handleError(err: unknown): string {
@@ -21,7 +22,7 @@ const client = new Client({
 
 commandHandler(client);
 
-client.on("interactionCreate", async (interaction:any) => {
+client.on("interactionCreate", async (interaction: any) => {
     if (!interaction.isCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
@@ -42,6 +43,30 @@ client.on("interactionCreate", async (interaction:any) => {
         });
     }
 });
+
+client.on('messageCreate', async (msg: typeof Message) => {
+    try {
+        if (msg.author.id !== "365086070754246657") return;
+        const args = msg.content.split(' ');
+
+        if (!new RegExp(`^<@!?${client.user.id}>`).test(args.shift())) return;
+        switch (args.shift().toLowerCase()) {
+            default: break;
+            case 'eval': {
+                try {
+                    const code = args.join(' ').replace(/^```(?:[^\n]*\n)?([^]+)```$/, (found: string, code: string) => code);
+                    const returned = await eval(`(async () => {\n${code}\n})`)();
+                    await msg.channel.send('```js\n' + Util.inspect(returned).substring(0, 2000 - 10) + '\n```');
+                } catch (err: any) {
+                    await msg.channel.send('```js\n' + err.stack.substring(0, 2000 - 10) + '\n```');
+                }
+            } break;
+        }
+    } catch (err: any) {
+        await msg.channel.send(`${'```'}js\n${err.stack}\n${'```'}`);
+    }
+});
+
 
 (async () => {
     try {

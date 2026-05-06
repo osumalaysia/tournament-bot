@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, Role } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, Role, PermissionFlagsBits } from "discord.js";
 
 export const data = new SlashCommandBuilder()
     .setName("add-roles")
     .setDescription("Add roles to a batch of users by their Discord IDs")
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageRoles)
     .addRoleOption(option => 
         option.setName("role")
             .setDescription("The role to add (mention it or type the name)")
@@ -15,11 +16,6 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
-        if (interaction.user.id !== "365086070754246657") {
-        await interaction.reply({ content: "You don't have permission to use this command.", ephemeral: true });
-        return;
-    }
-
     const roleObj = interaction.options.getRole("role") as Role;
     const rawIds = interaction.options.getString("ids") ?? "";
     const ids = rawIds.split(",").map(id => id.trim()).filter(id => id.length > 0);
@@ -40,7 +36,8 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             const member = await guild.members.fetch(id);
             await member.roles.add(roleObj);
             success.push(`${member.user.tag} (\`${id}\`)`);
-        } catch (error) {
+        } catch (error: any) {
+            console.error(`Failed to add role for ID ${id}:`, error);
             failed.push(id);
         }
     }
