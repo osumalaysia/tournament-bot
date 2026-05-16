@@ -18,7 +18,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const roleObj = interaction.options.getRole("role") as Role;
     const rawIds = interaction.options.getString("ids") ?? "";
-    const ids = rawIds.split(",").map(id => id.trim()).filter(id => id.length > 0);
+    const ids = rawIds.split(" ").map(id => id.trim()).filter(id => id.length > 0);
     const guild = interaction.guild;
 
     if (!guild) {

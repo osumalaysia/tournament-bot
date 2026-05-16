@@ -2,19 +2,29 @@ const { Message } = require("discord.js");
 require("dotenv").config();
 const { DISCORD_TOKEN } = process.env;
 const Util = require('util');
-const { Client, GatewayIntentBits, MessageFlags, Partials, } = require("discord.js");
+const { Client, GatewayIntentBits, MessageFlags, Partials, ActivityType } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
 
 function handleError(err: unknown): string {
     return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
 }
 const client = new Client({
-    intents: ["Guilds", "GuildMessages", "DirectMessages"],
-    partials: `USER,CHANNEL,GUILD_MEMBER,MESSAGE,REACTION`.split(',').map(partial => Partials[partial]),
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.DirectMessages
+    ],
+    partials: [
+        Partials.User,
+        Partials.Channel,
+        Partials.GuildMember,
+        Partials.Message,
+        Partials.Reaction
+    ],
     presence: {
         activities: [{
             name: '鷺澤有里栖 a(✿◠‿◠)',
-            type: 'STREAMING',
+            type: ActivityType.Streaming,
             url: 'https://www.youtube.com/watch?v=0976Z1s0V1A&ab_channel=CircusOfficialChannel'
         }]
     }
