@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
@@ -11,7 +11,8 @@ const CONFIG = {
   SIGNUP_CHANNEL_ID: "1499060711072989184",
   COOLDOWN_SECONDS: 20,
 };
-
+const qualifierSheetId = "1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ"
+const logChannelId = "1499060711072989184";
 const cooldownMap = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
@@ -94,19 +95,16 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     return;
   }
 
-
-
-  await interaction.deferReply({ ephemeral: false });
-
+  await interaction.deferReply({ ephemeral: true });
   try {
-    const doc = await getDoc();
+    const doc = await getDoc(qualifierSheetId);
     const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
 
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
     const username = await getUsernameFromDiscordId(playerSheet, interaction.user.id, matchId);
 
     if (!username) {
-      await interaction.editReply("Error: Discord ID not found in PlayerList.");
+      await interaction.editReply({ content: "Error: Discord ID not found in PlayerList." });
       return;
     }
 
@@ -116,14 +114,14 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
 
     const matchRow = findMatchRow(sheet, matchId);
     if (matchRow === -1) {
-      await interaction.editReply(`Could not find Qualifier ID: **${matchId}**`);
+      await interaction.editReply({ content: `Could not find Qualifier ID: **${matchId}**` });
       return;
     }
 
     const existingUser = findExistingUser(sheet, username);
     if (existingUser) {
       if (existingUser.row === matchRow) {
-        await interaction.editReply(`You are already in lobby **${matchId}**.`);
+        await interaction.editReply({ content: `You are already in lobby **${matchId}**.` });
         return;
       }
       sheet.getCellByA1(`${existingUser.col}${existingUser.row}`).value = "";
@@ -131,18 +129,23 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
 
     const targetCol = findFirstEmptySlot(sheet, matchRow);
     if (!targetCol) {
-      await interaction.editReply(`Qualifier **${matchId}** is full.Please try other lobby`);
+      await interaction.editReply({ content: `Qualifier **${matchId}** is full.Please try other lobby` });
       return;
     }
 
     sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
     await sheet.saveUpdatedCells();
 
-    await interaction.editReply(`Successfully assigned **${username}** to **${matchId}** (Slot ${targetCol}).`);
-
+    await interaction.editReply({ content: `Successfully assigned **${username}** to **${matchId}** (Slot ${targetCol}).` });
+    const logChannel = await interaction.client.channels.fetch(logChannelId);
+    const embed = new EmbedBuilder()
+      .setDescription(`**${username}** has signed up for qualifier Match **${matchId}**.`);
+    if (logChannel && 'send' in logChannel) {
+      await logChannel.send({ embeds: [embed] });
+    }
   } catch (error) {
     console.error("Error:", error);
-    await interaction.editReply("An error occurred while updating the schedule.");
+    await interaction.editReply({ content: "An error occurred while updating the schedule. <@365086070754246657> has been notified." });
   }
 }
 

@@ -8,14 +8,15 @@ const serviceAccountAuth = new JWT({
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
-let doc:any;
+const docs = new Map<string, any>();
 
-const getDoc = async () => {
-  if (!doc) {
-    doc = new GoogleSpreadsheet("1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ", serviceAccountAuth);
-    await doc.loadInfo();
+const getDoc = async (spreadsheetId: string) => {
+  if (!docs.has(spreadsheetId)) {
+    const newDoc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth);
+    await newDoc.loadInfo();
+    docs.set(spreadsheetId, newDoc);
   }
-  return doc;
+  return docs.get(spreadsheetId);
 }
 
 module.exports = { getDoc };
