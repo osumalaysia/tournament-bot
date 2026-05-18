@@ -11,6 +11,7 @@ const CONFIG = {
   TIMEZONE_OFFSET_GMT8: "GMT+08:00",
   COOLDOWN_SECONDS: 30,
 };
+const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map<string, number>();
 
 const convertFraction = (time: number): number => (time / 100) / 24;
@@ -136,7 +137,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const dateObj = convertDate(newDateStr, newTimeStr);
     if (!dateObj) return interaction.reply({ content: "Invalid date/time format.", ephemeral: true });
 
-    const doc = await getDoc();
+    const doc = await getDoc(bracketMatchSheetId);
     await doc.updateProperties({ timeZone: CONFIG.TIMEZONE_OFFSET_GMT8 });
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
@@ -146,7 +147,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     
     await Promise.all([
       sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:J${CONFIG.SHEET_END_ROW}`),
-      playerSheet.loadCells(`A1:C200`)
+      playerSheet.loadCells(`A1:F150`)
     ]);
 
     const username = getUsernameFromDiscordId(playerSheet, interaction.user.id);
