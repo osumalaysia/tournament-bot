@@ -1,19 +1,19 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
 
 const CONFIG = {
-  SHEET_START_ROW: 3,
-  SHEET_END_ROW: 210,
-  SHEET_TITLE: "Schedule",
-  PLAYER_SHEET: "PlayerList",
-  TIMEZONE_OFFSET_GMT8: "GMT+08:00",
-  COOLDOWN_SECONDS: 30,
+    SHEET_START_ROW: 3,
+    SHEET_END_ROW: 210,
+    SHEET_TITLE: "Schedule",
+    PLAYER_SHEET: "PlayerList",
+    TIMEZONE_OFFSET_GMT8: "GMT+08:00",
+    COOLDOWN_SECONDS: 30,
 };
 const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map<string, number>();
-
+const logChannelId = "1499060711072989184";
 const convertFraction = (time: number): number => (time / 100) / 24;
 
 const convertDateFormat = (dateStr: string): number => {
@@ -26,8 +26,8 @@ const convertDateFormat = (dateStr: string): number => {
 
     const newDate = new Date(year, month - 1, day);
     const timezoneOffset = newDate.getTimezoneOffset() * 60 * 1000;
-    
-    return ((newDate.getTime() - timezoneOffset) / (1000*60*60*24)) + 25569;
+
+    return ((newDate.getTime() - timezoneOffset) / (1000 * 60 * 60 * 24)) + 25569;
 };
 
 const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
@@ -51,27 +51,27 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
 };
 
 function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): string | null {
-  for (let r = 1; r <= 200; r++) {
-    const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
-    if (discordIdCell?.toString().trim() === discordId) {
-      return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+    for (let r = 1; r <= 200; r++) {
+        const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
+        if (discordIdCell?.toString().trim() === discordId) {
+            return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 function getDiscordIdFromUsername(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null {
-  for (let r = 1; r <= 200; r++) {
-    const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
-    if (usernameCell?.toString() === username) {
-      return playerSheet.getCellByA1(`F${r}`).value?.toString() || null;
+    for (let r = 1; r <= 200; r++) {
+        const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
+        if (usernameCell?.toString() === username) {
+            return playerSheet.getCellByA1(`F${r}`).value?.toString() || null;
+        }
     }
-  }
-  return null;
+    return null;
 }
 
 const toDiscordTimestamp = (date: Date): string => {
-    const unix = Math.floor(date.getTime() / 1000) - 8*60*60;
+    const unix = Math.floor(date.getTime() / 1000) - 8 * 60 * 60;
     return `<t:${unix}:f>`;
 };
 
@@ -83,12 +83,12 @@ const getMatchRow = (sheet: typeof GoogleSpreadsheetWorksheet, username: string,
         const player2 = sheet.getCellByA1(`I${row}`).value?.toString();
 
         const isParticipant = player1 === username || player2 === username;
-        
+
         if (isParticipant && id === matchId) {
-            return { 
-                row, 
-                id, 
-                player1, 
+            return {
+                row,
+                id,
+                player1,
                 player2,
 
                 hasDate: typeof sheet.getCellByA1(`D${row}`).value === "number",
@@ -144,10 +144,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
     if (!sheet) return interaction.reply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.`, ephemeral: true });
     if (!playerSheet) return interaction.reply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.`, ephemeral: true });
-    
+
     await Promise.all([
-      sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:J${CONFIG.SHEET_END_ROW}`),
-      playerSheet.loadCells(`A1:F150`)
+        sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:J${CONFIG.SHEET_END_ROW}`),
+        playerSheet.loadCells(`A1:F150`)
     ]);
 
     const username = getUsernameFromDiscordId(playerSheet, interaction.user.id);
@@ -162,7 +162,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
     const opponentUsername = username === match.player1 ? match.player2 : match.player1;
     const opponentId = opponentUsername ? getDiscordIdFromUsername(playerSheet, opponentUsername) : null;
-    
+
     if (!opponentId) {
         return interaction.reply({ content: `Could not find opponent Discord ID.`, ephemeral: true });
     }
@@ -175,19 +175,23 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
         new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger)
     );
 
-    const sentMessage = await interaction.reply({ 
-        content: messageText, 
-        components: [buttons], 
-        fetchReply: true 
+    const sentMessage = await interaction.reply({
+        content: messageText,
+        components: [buttons],
+        fetchReply: true
     });
 
-    const collector = sentMessage.createMessageComponentCollector({ 
+    const collector = sentMessage.createMessageComponentCollector({
         componentType: ComponentType.Button,
-        time: 5 * 60 * 1000 
+        time: 5 * 60 * 1000
     });
 
     collector.on("collect", async (i: any) => {
-        
+        if (i.user.id !== opponentId) {
+            await i.reply({ content: "You are not authorized to respond to this request.", ephemeral: true });
+            return;
+        }
+
         if (i.customId === "reject") {
             await i.update({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
             return collector.stop();
@@ -200,6 +204,12 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 await sheet.saveUpdatedCells();
 
                 await i.update({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
+                const logChannel = await interaction.client.channels.fetch(logChannelId);
+                const embed = new EmbedBuilder()
+                    .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
+                if (logChannel && 'send' in logChannel) {
+                    await logChannel.send({ embeds: [embed] });
+                }
                 collector.stop();
             } catch (err) {
                 console.error(err);
@@ -214,7 +224,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success).setDisabled(true),
                 new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger).setDisabled(true)
             );
-            await sentMessage.edit({ components: [disabledRow] }).catch(() => {});
+            await sentMessage.edit({ components: [disabledRow] }).catch(() => { });
         }
     });
 }
