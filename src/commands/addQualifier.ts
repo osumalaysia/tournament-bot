@@ -54,14 +54,11 @@ function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: 
   return null;
 }
 
-async function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): Promise<string | null> {
-  await playerSheet.loadCells(`A1:D200`);
-
+function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): string | null {
   for (let r = 1; r <= 200; r++) {
     const discordIdCell = playerSheet.getCellByA1(`C${r}`).value;
     if (discordIdCell?.toString().trim() === discordId) {
       playerSheet.getCellByA1(`D${r}`).value = matchId;
-      await playerSheet.saveUpdatedCells();
       return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
     }
   }
@@ -101,16 +98,20 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
 
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    const username = await getUsernameFromDiscordId(playerSheet, interaction.user.id, matchId);
+    const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
+    const lastCol = CONFIG.SLOT_COLUMNS[CONFIG.SLOT_COLUMNS.length - 1];
+
+    await Promise.all([
+      playerSheet.loadCells(`A1:D200`),
+      sheet.loadCells(`A1:${lastCol}100`)
+    ]);
+
+    const username = getUsernameFromDiscordId(playerSheet, interaction.user.id, matchId);
 
     if (!username) {
       await interaction.editReply({ content: "Error: Discord ID not found in PlayerList." });
       return;
     }
-
-    const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
-    const lastCol = CONFIG.SLOT_COLUMNS[CONFIG.SLOT_COLUMNS.length - 1];
-    await sheet.loadCells(`A1:${lastCol}100`);
 
     const matchRow = findMatchRow(sheet, matchId);
     if (matchRow === -1) {
@@ -134,7 +135,11 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
     sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
-    await sheet.saveUpdatedCells();
+    
+    await Promise.all([
+      playerSheet.saveUpdatedCells(),
+      sheet.saveUpdatedCells()
+    ]);
 
     await interaction.editReply({ content: `Successfully assigned **${username}** to **${matchId}** (Slot ${targetCol}).` });
     const logChannel = await interaction.client.channels.fetch(logChannelId);
