@@ -108,10 +108,10 @@ export const data = new SlashCommandBuilder()
         opt.setName("newtime").setDescription("Time 24h format (e.g. 1900)").setRequired(true)
     )
     .addStringOption((opt: any) =>
-        opt.setName("newMonth").setDescription("Month (e.g. 08)").setRequired(true)
+        opt.setName("newmonth").setDescription("Month (e.g. 08)").setRequired(true)
     )
     .addStringOption((opt: any) =>
-        opt.setName("newDay").setDescription("Day (e.g. 15)").setRequired(true)
+        opt.setName("newday").setDescription("Day (e.g. 15)").setRequired(true)
     );
 
 export async function execute(interaction: typeof ChatInputCommandInteraction) {
@@ -130,8 +130,8 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
     const matchId = interaction.options.getString("matchid").toUpperCase();
     const newTimeStr = interaction.options.getString("newtime");
-    const newMonthStr = interaction.options.getString("newMonth");
-    const newDayStr = interaction.options.getString("newDay");
+    const newMonthStr = interaction.options.getString("newmonth");
+    const newDayStr = interaction.options.getString("newday");
     const newDateStr = `${newMonthStr}-${newDayStr}`;
     const dateObj = convertDate(newDateStr, newTimeStr);
     if (!dateObj) return interaction.reply({ content: "Invalid date/time format.", ephemeral: true });
