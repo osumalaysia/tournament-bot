@@ -194,7 +194,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
         if (i.customId === "reject") {
             await i.update({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
-            return collector.stop();
+            return collector.stop("rejected");
         }
 
         if (i.customId === "accept") {
@@ -210,7 +210,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 if (logChannel && 'send' in logChannel) {
                     await logChannel.send({ embeds: [embed] });
                 }
-                collector.stop();
+                return collector.stop("accepted");
             } catch (err) {
                 console.error(err);
                 await i.reply({ content: "Failed to update sheet.", ephemeral: true });
@@ -219,12 +219,12 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     });
 
     collector.on("end", async (_: any, reason: string) => {
-        if (reason !== "user") {
+        if (reason !== "accepted" && reason !== "rejected") {
             const disabledRow = new ActionRowBuilder().addComponents(
                 new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success).setDisabled(true),
                 new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger).setDisabled(true)
             );
-            await sentMessage.edit({ components: [disabledRow] }).catch(() => { });
+            await sentMessage.edit({ content: `~~${messageText}~~\n⏳ Reschedule request timed out`, components: [disabledRow] }).catch(() => { });
         }
     });
 }
