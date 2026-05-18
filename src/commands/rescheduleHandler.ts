@@ -1,10 +1,17 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
+const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
+const { ChatInputCommandInteraction } = require("discord.js");
 
-const SHEET_START_ROW = 10;
-const SHEET_END_ROW = 28;
-const SHEET_NAME = "Schedule";
-const TIMEZONE_OFFSET_GMT8 = "GMT+08:00";
+const CONFIG = {
+  SHEET_START_ROW: 3,
+  SHEET_END_ROW: 210,
+  SHEET_TITLE: "Schedule",
+  PLAYER_SHEET: "PlayerList",
+  TIMEZONE_OFFSET_GMT8: "GMT+08:00",
+  COOLDOWN_SECONDS: 30,
+};
+const cooldownMap = new Map<string, number>();
 
 const convertFraction = (time: number): number => (time / 100) / 24;
 
@@ -42,19 +49,39 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
+function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): string | null {
+  for (let r = 1; r <= 200; r++) {
+    const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
+    if (discordIdCell?.toString().trim() === discordId) {
+      return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+    }
+  }
+  return null;
+}
+
+function getDiscordIdFromUsername(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null {
+  for (let r = 1; r <= 200; r++) {
+    const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
+    if (usernameCell?.toString() === username) {
+      return playerSheet.getCellByA1(`F${r}`).value?.toString() || null;
+    }
+  }
+  return null;
+}
+
 const toDiscordTimestamp = (date: Date): string => {
     const unix = Math.floor(date.getTime() / 1000) - 8*60*60;
     return `<t:${unix}:f>`;
 };
 
-const getMatchRow = (sheet: any, userId: string, matchId: string) => {
-    for (let row = SHEET_START_ROW; row <= SHEET_END_ROW; row++) {
+const getMatchRow = (sheet: typeof GoogleSpreadsheetWorksheet, username: string, matchId: string) => {
+    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
 
-        const id = sheet.getCellByA1(`D${row}`).value;
-        const player1 = sheet.getCellByA1(`O${row}`).value;
-        const player2 = sheet.getCellByA1(`P${row}`).value;
+        const id = sheet.getCellByA1(`B${row}`).value;
+        const player1 = sheet.getCellByA1(`F${row}`).value?.toString();
+        const player2 = sheet.getCellByA1(`I${row}`).value?.toString();
 
-        const isParticipant = player1 === userId || player2 === userId;
+        const isParticipant = player1 === username || player2 === username;
         
         if (isParticipant && id === matchId) {
             return { 
@@ -63,8 +90,8 @@ const getMatchRow = (sheet: any, userId: string, matchId: string) => {
                 player1, 
                 player2,
 
+                hasDate: typeof sheet.getCellByA1(`D${row}`).value === "number",
                 hasTime: typeof sheet.getCellByA1(`E${row}`).value === "number",
-                hasDate: typeof sheet.getCellByA1(`F${row}`).value === "number"
             };
         }
     }
@@ -81,31 +108,64 @@ export const data = new SlashCommandBuilder()
         opt.setName("newtime").setDescription("Time 24h format (e.g. 1900)").setRequired(true)
     )
     .addStringOption((opt: any) =>
-        opt.setName("newdate").setDescription("Date MM-DD (e.g. 08-15)").setRequired(true)
+        opt.setName("newMonth").setDescription("Month (e.g. 08)").setRequired(true)
+    )
+    .addStringOption((opt: any) =>
+        opt.setName("newDay").setDescription("Day (e.g. 15)").setRequired(true)
     );
 
-export async function execute(interaction: any) {
+export async function execute(interaction: typeof ChatInputCommandInteraction) {
+    const userId = interaction.user.id;
+    const now = Date.now();
+
+    if (cooldownMap.has(userId)) {
+        const expirationTime = cooldownMap.get(userId)!;
+        if (now < expirationTime) {
+            const timeLeft = Math.round((expirationTime - now) / 1000);
+            await interaction.reply({ content: `Please wait ${timeLeft} more second(s) before using this command again.`, ephemeral: true });
+            return;
+        }
+    }
+    cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
+
     const matchId = interaction.options.getString("matchid").toUpperCase();
     const newTimeStr = interaction.options.getString("newtime");
-    const newDateStr = interaction.options.getString("newdate");
-
+    const newMonthStr = interaction.options.getString("newMonth");
+    const newDayStr = interaction.options.getString("newDay");
+    const newDateStr = `${newMonthStr}-${newDayStr}`;
     const dateObj = convertDate(newDateStr, newTimeStr);
     if (!dateObj) return interaction.reply({ content: "Invalid date/time format.", ephemeral: true });
 
     const doc = await getDoc();
-    await doc.updateProperties({ timeZone: TIMEZONE_OFFSET_GMT8 });
-    
-    const sheet = doc.sheetsByTitle[SHEET_NAME];
-    if (!sheet) return interaction.reply({ content: `Sheet '${SHEET_NAME}' not found.`, ephemeral: true });
-    
-    await sheet.loadCells(`D$${SHEET_START_ROW}:P${SHEET_END_ROW}`);
+    await doc.updateProperties({ timeZone: CONFIG.TIMEZONE_OFFSET_GMT8 });
 
-    const match = getMatchRow(sheet, interaction.user.id, matchId);
+    const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
+    const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
+    if (!sheet) return interaction.reply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.`, ephemeral: true });
+    if (!playerSheet) return interaction.reply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.`, ephemeral: true });
+    
+    await Promise.all([
+      sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:J${CONFIG.SHEET_END_ROW}`),
+      playerSheet.loadCells(`A1:C200`)
+    ]);
+
+    const username = getUsernameFromDiscordId(playerSheet, interaction.user.id);
+    if (!username) {
+        return interaction.reply({ content: "Error: Could not find your Discord ID in the registered player list.", ephemeral: true });
+    }
+
+    const match = getMatchRow(sheet, username, matchId);
     if (!match || !match.hasTime || !match.hasDate) {
         return interaction.reply({ content: `Match ID **${matchId}** not found, or you are not a player in it.`, ephemeral: true });
     }
 
-    const opponentId = interaction.user.id === match.player1 ? String(match.player2) : String(match.player1);
+    const opponentUsername = username === match.player1 ? match.player2 : match.player1;
+    const opponentId = opponentUsername ? getDiscordIdFromUsername(playerSheet, opponentUsername) : null;
+    
+    if (!opponentId) {
+        return interaction.reply({ content: `Could not find opponent Discord ID.`, ephemeral: true });
+    }
+
     const discordTs = toDiscordTimestamp(dateObj);
     const messageText = `Hey <@${opponentId}>! <@${interaction.user.id}> wants to reschedule **${matchId}** to ${discordTs}`;
 
@@ -135,7 +195,7 @@ export async function execute(interaction: any) {
         if (i.customId === "accept") {
             try {
                 sheet.getCellByA1(`E${match.row}`).value = convertFraction(Number(newTimeStr));
-                sheet.getCellByA1(`F${match.row}`).value = convertDateFormat(newDateStr);
+                sheet.getCellByA1(`D${match.row}`).value = convertDateFormat(newDateStr);
                 await sheet.saveUpdatedCells();
 
                 await i.update({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
