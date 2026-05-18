@@ -1,6 +1,6 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 
-const TOURNAMENT_NAME = "OMAT 2026";
+const TOURNAMENT_NAME = "o!M4T 2026";
 const EMOJI_GUILD_ID = "905398607895752735";
 const TARGET_CHANNEL_ID = "907350212320849940";
 const ROLE_ID = "905399222486303744";
@@ -51,12 +51,12 @@ export const data = new SlashCommandBuilder()
     .addStringOption((ban2: any) =>
         ban2.setName("ban2").setDescription("Ban 2").setRequired(true)
     )
-    .addStringOption((ban3: any) =>
+  /*  .addStringOption((ban3: any) =>
         ban3.setName("ban3").setDescription("Ban 3").setRequired(true)
     )
     .addStringOption((ban4: any) =>
         ban4.setName("ban4").setDescription("Ban 4").setRequired(true)
-    )
+    ) */
     .addStringOption((firstpick: any) =>
         firstpick.setName("firstpick").setDescription("First Pick").setRequired(true)
     )
@@ -97,8 +97,8 @@ export async function execute(interaction: any) {
         bans: {
             ban1: interaction.options.getString("ban1"),
             ban2: interaction.options.getString("ban2"),
-            ban3: interaction.options.getString("ban3"),
-            ban4: interaction.options.getString("ban4"),
+          //  ban3: interaction.options.getString("ban3"),
+        // ban4: interaction.options.getString("ban4"),
         },
         firstpick: interaction.options.getString("firstpick"),
         firstban: interaction.options.getString("firstban"),
@@ -124,7 +124,7 @@ export async function execute(interaction: any) {
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
             {
                 name: "Bans",
-                value: `${data.player1}:\n${data.bans.ban1}\n${data.bans.ban2}\n\n${data.player2}:\n${data.bans.ban3}\n${data.bans.ban4}`,
+                value: `${data.player1}:\n${data.bans.ban1}\n\n${data.player2}:\n${data.bans.ban2}`,
                 inline: false,
             }
         )
