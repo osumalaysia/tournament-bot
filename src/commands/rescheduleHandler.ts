@@ -14,7 +14,12 @@ const CONFIG = {
 const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map<string, number>();
 const logChannelId = "1499060711072989184";
-const convertFraction = (time: number): number => (time / 100) / 24;
+
+const convertFraction = (time: number): number => {
+    const hours = Math.floor(time / 100);
+    const minutes = time % 100;
+    return (hours + minutes / 60) / 24;
+};
 
 const convertDateFormat = (dateStr: string): number => {
     const parts = dateStr.split("-");
