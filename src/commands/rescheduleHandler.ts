@@ -9,7 +9,7 @@ const CONFIG = {
     SHEET_TITLE: "Schedule",
     PLAYER_SHEET: "PlayerList",
     TIMEZONE_OFFSET_GMT8: "GMT+08:00",
-    COOLDOWN_SECONDS: 30,
+    COOLDOWN_SECONDS: 300,
 };
 const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map<string, number>();
