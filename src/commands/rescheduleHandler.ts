@@ -169,7 +169,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             return;
         }
     }
-    
+
     await interaction.deferReply();
     cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
 
@@ -182,7 +182,6 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
 
     const doc = await getDoc(bracketMatchSheetId);
-    await doc.updateProperties({ timeZone: CONFIG.TIMEZONE_OFFSET_GMT8 });
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
@@ -254,7 +253,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                     const staffNames = getStaffNames(sheet, matchId);
                     const refereeName = staffNames?.referee;
                     const streamerName = staffNames?.streamer;
-                    await logChannel.send(`@${refereeName} @${streamerName}`, { embeds: [embed] });
+                    await logChannel.send({
+                        content: `@${refereeName} @${streamerName}`,
+                        embeds: [embed]
+                    });
                 }
                 return collector.stop("accepted");
             } catch (err) {
