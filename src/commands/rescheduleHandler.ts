@@ -123,30 +123,38 @@ export const data = new SlashCommandBuilder()
     .setName("reschedule")
     .setDescription("Reschedule a match")
     .addStringOption((opt: any) =>
-        opt.setName("matchid").setDescription("Match ID from the schedule sheet").setRequired(true)
+        opt.setName("matchid")
+            .setDescription("Match ID from the schedule sheet")
+            .setRequired(true)
     )
     .addStringOption((opt: any) =>
-        opt.setName("newtime").setDescription("Time 24h format (e.g. 1900)").setRequired(true)
+        opt.setName("newtime")
+            .setDescription("Time 24h format (e.g. 1900)")
+            .setRequired(true)
     )
     .addStringOption((opt: any) =>
-        opt.setName("newmonth").setDescription("Month (e.g. 08)")
-    .setRequired(true)
-    .addChoices([
-            { name: "JAN", value: "01" },
-            { name: "FEB", value: "02" },
-            { name: "MAR", value: "03" },
-            { name: "APR", value: "04" },
-            { name: "MAY", value: "05" },
-            { name: "JUN", value: "06" },
-            { name: "JUL", value: "07" },
-            { name: "AUG", value: "08" },
-            { name: "SEP", value: "09" },
-            { name: "OCT", value: "10" },
-            { name: "NOV", value: "11" },
-            { name: "DEC", value: "12" }
-        ]))
+        opt.setName("newmonth")
+            .setDescription("Month (e.g. 08)")
+            .setRequired(true)
+            .addChoices([
+                { name: "JAN", value: "01" },
+                { name: "FEB", value: "02" },
+                { name: "MAR", value: "03" },
+                { name: "APR", value: "04" },
+                { name: "MAY", value: "05" },
+                { name: "JUN", value: "06" },
+                { name: "JUL", value: "07" },
+                { name: "AUG", value: "08" },
+                { name: "SEP", value: "09" },
+                { name: "OCT", value: "10" },
+                { name: "NOV", value: "11" },
+                { name: "DEC", value: "12" }
+            ])
+    )
     .addStringOption((opt: any) =>
-        opt.setName("newday").setDescription("Day (e.g. 15)").setRequired(true)
+        opt.setName("newday")
+            .setDescription("Day (e.g. 15)")
+            .setRequired(true)
     );
 
 export async function execute(interaction: typeof ChatInputCommandInteraction) {
