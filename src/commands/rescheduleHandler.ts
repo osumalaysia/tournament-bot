@@ -137,18 +137,18 @@ export const data = new SlashCommandBuilder()
             .setDescription("Month (e.g. 08)")
             .setRequired(true)
             .addChoices([
-                { name: "JAN", value: "01" },
-                { name: "FEB", value: "02" },
-                { name: "MAR", value: "03" },
-                { name: "APR", value: "04" },
-                { name: "MAY", value: "05" },
-                { name: "JUN", value: "06" },
-                { name: "JUL", value: "07" },
-                { name: "AUG", value: "08" },
-                { name: "SEP", value: "09" },
-                { name: "OCT", value: "10" },
-                { name: "NOV", value: "11" },
-                { name: "DEC", value: "12" }
+                { name: "Jan", value: "01" },
+                { name: "Feb", value: "02" },
+                { name: "Mar", value: "03" },
+                { name: "Apr", value: "04" },
+                { name: "May", value: "05" },
+                { name: "Jun", value: "06" },
+                { name: "Jul", value: "07" },
+                { name: "Aug", value: "08" },
+                { name: "Sep", value: "09" },
+                { name: "Oct", value: "10" },
+                { name: "Nov", value: "11" },
+                { name: "Dec", value: "12" }
             ])
     )
     .addStringOption((opt: any) =>
