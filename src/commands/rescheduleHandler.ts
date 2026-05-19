@@ -131,19 +131,20 @@ export const data = new SlashCommandBuilder()
     .addStringOption((opt: any) =>
         opt.setName("newmonth").setDescription("Month (e.g. 08)")
     .setRequired(true)
-    .addChoice("JAN", "01")
-    .addChoice("FEB", "02")
-    .addChoice("MAR", "03")
-    .addChoice("APR", "04")
-    .addChoice("MAY", "05")
-    .addChoice("JUN", "06")
-    .addChoice("JUL", "07")
-    .addChoice("AUG", "08")
-    .addChoice("SEP", "09")
-    .addChoice("OCT", "10")
-    .addChoice("NOV", "11")
-    .addChoice("DEC", "12")
-    )
+    .addChoices([
+            { name: "JAN", value: "01" },
+            { name: "FEB", value: "02" },
+            { name: "MAR", value: "03" },
+            { name: "APR", value: "04" },
+            { name: "MAY", value: "05" },
+            { name: "JUN", value: "06" },
+            { name: "JUL", value: "07" },
+            { name: "AUG", value: "08" },
+            { name: "SEP", value: "09" },
+            { name: "OCT", value: "10" },
+            { name: "NOV", value: "11" },
+            { name: "DEC", value: "12" }
+        ]))
     .addStringOption((opt: any) =>
         opt.setName("newday").setDescription("Day (e.g. 15)").setRequired(true)
     );
