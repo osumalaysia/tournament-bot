@@ -97,7 +97,7 @@ export async function execute(interaction: any) {
         bans: {
             ban1: interaction.options.getString("ban1"),
             ban2: interaction.options.getString("ban2"),
-          //  ban3: interaction.options.getString("ban3"),
+        //  ban3: interaction.options.getString("ban3"),
         // ban4: interaction.options.getString("ban4"),
         },
         firstpick: interaction.options.getString("firstpick"),
@@ -107,19 +107,8 @@ export async function execute(interaction: any) {
 
     const resultEmbed = new EmbedBuilder()
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`Final Result`)
-        .setThumbnail(iconURL)
+        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${p1Profile} ${data.player1} | ${data.score1} - ${data.score2} | ${p2Profile} ${data.player2} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
         .addFields(
-            {
-                name: `${p1Profile} ${data.player1} ${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""}`,
-                value: data.score1 > 0 ? "🔴".repeat(data.score1) : "_ _",
-                inline: false,
-            },
-            {
-                name: `${p2Profile} ${data.player2} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`,
-                value: data.score2 > 0 ? "🔵".repeat(data.score2) : "_ _",
-                inline: false,
-            },
             { name: "MP LINK", value: `https://osu.ppy.sh/mp/${data.mplink}`, inline: false },
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
             {
