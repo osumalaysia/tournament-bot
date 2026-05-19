@@ -254,8 +254,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                     const staffNames = getStaffNames(sheet, matchId);
                     const refereeName = staffNames?.referee;
                     const streamerName = staffNames?.streamer;
-                    await logChannel.send(`<@${refereeName}> <@${streamerName}>`);
-                    await logChannel.send({ embeds: [embed] });
+                    await logChannel.send(`@${refereeName} @${streamerName}`, { embeds: [embed] });
                 }
                 return collector.stop("accepted");
             } catch (err) {
