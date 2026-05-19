@@ -169,6 +169,8 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             return;
         }
     }
+    
+    await interaction.deferReply();
     cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
 
     const matchId = interaction.options.getString("matchid").toUpperCase();
@@ -177,15 +179,15 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const newDayStr = interaction.options.getString("newday");
     const newDateStr = `${newMonthStr}-${newDayStr}`;
     const dateObj = convertDate(newDateStr, newTimeStr);
-    if (!dateObj) return interaction.reply({ content: "Invalid date/time format.", ephemeral: true });
+    if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
 
     const doc = await getDoc(bracketMatchSheetId);
     await doc.updateProperties({ timeZone: CONFIG.TIMEZONE_OFFSET_GMT8 });
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    if (!sheet) return interaction.reply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.`, ephemeral: true });
-    if (!playerSheet) return interaction.reply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.`, ephemeral: true });
+    if (!sheet) return interaction.editReply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.` });
+    if (!playerSheet) return interaction.editReply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.` });
 
     await Promise.all([
         sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
@@ -194,19 +196,19 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
     const username = getUsernameFromDiscordId(playerSheet, interaction.user.id);
     if (!username) {
-        return interaction.reply({ content: "Error: Could not find your Discord ID in the registered player list.", ephemeral: true });
+        return interaction.editReply({ content: "Error: Could not find your Discord ID in the registered player list." });
     }
 
     const match = getMatchRow(sheet, username, matchId);
     if (!match || !match.hasTime || !match.hasDate) {
-        return interaction.reply({ content: `Match ID **${matchId}** not found, or you are not a player in it.`, ephemeral: true });
+        return interaction.editReply({ content: `Match ID **${matchId}** not found, or you are not a player in it.` });
     }
 
     const opponentUsername = username === match.player1 ? match.player2 : match.player1;
     const opponentId = opponentUsername ? getDiscordIdFromUsername(playerSheet, opponentUsername) : null;
 
     if (!opponentId) {
-        return interaction.reply({ content: `Could not find opponent Discord ID.`, ephemeral: true });
+        return interaction.editReply({ content: `Could not find opponent Discord ID.` });
     }
 
     const discordTs = toDiscordTimestamp(dateObj);
@@ -217,10 +219,9 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
         new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger)
     );
 
-    const sentMessage = await interaction.reply({
+    const sentMessage = await interaction.editReply({
         content: messageText,
-        components: [buttons],
-        fetchReply: true
+        components: [buttons]
     });
 
     const collector = sentMessage.createMessageComponentCollector({
