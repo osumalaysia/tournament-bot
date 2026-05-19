@@ -107,7 +107,7 @@ export async function execute(interaction: any) {
 
     const resultEmbed = new EmbedBuilder()
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${p1Profile} ${data.player1} | ${data.score1} - ${data.score2} | ${p2Profile} ${data.player2} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
+        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${p1Profile} ${data.player1} | ${data.score1} - ${data.score2} | ${data.player2} ${p2Profile} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
         .addFields(
             { name: "MP LINK", value: `https://osu.ppy.sh/mp/${data.mplink}`, inline: false },
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
