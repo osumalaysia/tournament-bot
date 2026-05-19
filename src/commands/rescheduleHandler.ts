@@ -55,7 +55,7 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
-function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): string | null {
+const getUsernameFromDiscordId = (playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): string | null => {
     for (let r = 1; r <= 200; r++) {
         const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
         if (discordIdCell?.toString().trim() === discordId) {
@@ -65,7 +65,7 @@ function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet
     return null;
 }
 
-function getDiscordIdFromUsername(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null {
+const getDiscordIdFromUsername = (playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null => {
     for (let r = 1; r <= 200; r++) {
         const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
         if (usernameCell?.toString() === username) {
@@ -98,6 +98,21 @@ const getMatchRow = (sheet: typeof GoogleSpreadsheetWorksheet, username: string,
 
                 hasDate: typeof sheet.getCellByA1(`D${row}`).value === "number",
                 hasTime: typeof sheet.getCellByA1(`E${row}`).value === "number",
+            };
+        }
+    }
+    return null;
+};
+
+const getStaffNames = (sheet: typeof GoogleSpreadsheetWorksheet, matchId: string): { referee: string | null, streamer: string | null } | null => {
+    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
+        const id = sheet.getCellByA1(`B${row}`).value;
+        if (id === matchId) {
+            const refereeCell = sheet.getCellByA1(`J${row}`).value;
+            const streamerCell = sheet.getCellByA1(`K${row}`).value;
+            return {
+                referee: refereeCell ? refereeCell.toString() : null,
+                streamer: streamerCell ? streamerCell.toString() : null
             };
         }
     }
@@ -164,7 +179,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     if (!playerSheet) return interaction.reply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.`, ephemeral: true });
 
     await Promise.all([
-        sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:J${CONFIG.SHEET_END_ROW}`),
+        sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
         playerSheet.loadCells(`A1:F150`)
     ]);
 
@@ -226,6 +241,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 const embed = new EmbedBuilder()
                     .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
                 if (logChannel && 'send' in logChannel) {
+                    const staffNames = getStaffNames(sheet, matchId);
+                    const refereeName = staffNames?.referee;
+                    const streamerName = staffNames?.streamer;
+                    await logChannel.send(`<@${refereeName}> <@${streamerName}>`);
                     await logChannel.send({ embeds: [embed] });
                 }
                 return collector.stop("accepted");
