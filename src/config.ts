@@ -1,0 +1,26 @@
+export const CONFIG = {
+  LOG_CHANNEL_ID: "1499060711072989184",
+  SIGNUP_CHANNEL_ID: "1499060711072989184",
+  TRYOUT_ROLE_ID: "1495676307164500123",
+  COOLDOWN_SECONDS: 20,
+  DEVELOPER_ID: "365086070754246657",
+};
+
+export const QUALIFIER = {
+    SHEET_ID: "1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ",
+    SHEETS: {
+    SCHEDULE: "Schedule",
+    PLAYER_LIST: "PlayerList",
+  },
+  COLUMNS: {
+    MATCH_ID: "B",
+    PLAYER_NAME: "A",
+    DISCORD_ID: "C",
+    CACHE_ASSIGNED_MATCH: "D",
+    PLAYER_SLOTS: ["F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U"],
+  },
+  LIMITS: {
+    MAX_MATCH_ROWS: 51,
+    MAX_PLAYER_ROWS: 200,
+  }
+}

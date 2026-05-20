@@ -1,18 +1,8 @@
-const { SlashCommandBuilder, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder,GuildMemberRoleManager,ChatInputCommandInteraction } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
-const { ChatInputCommandInteraction } = require("discord.js");
-const CONFIG = {
-  MATCH_ID_COL: "B",
-  SLOT_COLUMNS: ["F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U"],
-  SHEET_TITLE: "Schedule",
-  PLAYER_SHEET: "PlayerList",
-  TRYOUT_ROLE_ID: "1495676307164500123",
-  SIGNUP_CHANNEL_ID: "1499060711072989184",
-  COOLDOWN_SECONDS: 20,
-};
-const qualifierSheetId = "1Xca3qCtnU_y-B7FTizkrC3XSMja6zDrsCYPeNSo8gNQ"
-const logChannelId = "1499060711072989184";
+const { CONFIG, QUALIFIER } = require("../config");
+
 const cooldownMap = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
@@ -23,20 +13,18 @@ export const data = new SlashCommandBuilder()
   );
 
 function findMatchRow(sheet: typeof GoogleSpreadsheetWorksheet, matchId: string): number {
-  for (let row = 1; row <= 51; row++) {
-    const cell = sheet.getCellByA1(`${CONFIG.MATCH_ID_COL}${row}`);
-    if (cell.value?.toString().toUpperCase() === matchId.toUpperCase()) {
-      return row;
-    }
+  const targetId = matchId.toUpperCase();
+  for (let row = 1; row <= QUALIFIER.LIMITS.MAX_MATCH_ROWS; row++) {
+    const cellValue = sheet.getCellByA1(`${QUALIFIER.COLUMNS.MATCH_ID}${row}`).value?.toString();
+    if (cellValue?.toUpperCase() === targetId) return row;
   }
   return -1;
 }
 
-function findExistingUser(sheet: typeof GoogleSpreadsheetWorksheet, username: string): { row: number; col: string } | null {
-  for (let row = 1; row <= 51; row++) {
-    for (const col of CONFIG.SLOT_COLUMNS) {
-      const cellValue = sheet.getCellByA1(`${col}${row}`).value;
-      if (cellValue?.toString() === username) {
+function findExistingUserSlot(sheet: typeof GoogleSpreadsheetWorksheet, username: string): { row: number; col: string } | null {
+  for (let row = 1; row <= QUALIFIER.LIMITS.MAX_MATCH_ROWS; row++) {
+    for (const col of QUALIFIER.COLUMNS.PLAYER_SLOTS) {
+      if (sheet.getCellByA1(`${col}${row}`).value?.toString() === username) {
         return { row, col };
       }
     }
@@ -45,21 +33,19 @@ function findExistingUser(sheet: typeof GoogleSpreadsheetWorksheet, username: st
 }
 
 function findFirstEmptySlot(sheet: typeof GoogleSpreadsheetWorksheet, matchRow: number): string | null {
-  for (const col of CONFIG.SLOT_COLUMNS) {
+  for (const col of QUALIFIER.COLUMNS.PLAYER_SLOTS) {
     const cellValue = sheet.getCellByA1(`${col}${matchRow}`).value;
-    if (!cellValue || cellValue.toString().trim() === "") {
-      return col;
-    }
+    if (!cellValue || cellValue.toString().trim() === "") return col;
   }
   return null;
 }
 
-function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string, matchId: string): string | null {
-  for (let r = 1; r <= 200; r++) {
-    const discordIdCell = playerSheet.getCellByA1(`C${r}`).value;
-    if (discordIdCell?.toString().trim() === discordId) {
-      playerSheet.getCellByA1(`D${r}`).value = matchId;
-      return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+function findPlayerDataByDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): { username: string; row: number } | null {
+  for (let row = 1; row <= QUALIFIER.LIMITS.MAX_PLAYER_ROWS; row++) {
+    const currentId = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.DISCORD_ID}${row}`).value?.toString().trim();
+    if (currentId === discordId) {
+      const username = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_NAME}${row}`).value?.toString();
+      return username ? { username, row } : null;
     }
   }
   return null;
@@ -67,6 +53,11 @@ function getUsernameFromDiscordId(playerSheet: typeof GoogleSpreadsheetWorksheet
 
 export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
   const userId = interaction.user.id;
+
+  if (interaction.channelId !== CONFIG.SIGNUP_CHANNEL_ID) {
+    await interaction.reply({ content: "This command cannot be used in this channel.", ephemeral: true });
+    return;
+  }
 
   const now = Date.now();
   if (cooldownMap.has(userId)) {
@@ -78,80 +69,82 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
   }
 
-  cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
-  if (interaction.channelId !== CONFIG.SIGNUP_CHANNEL_ID) {
-    await interaction.reply({ content: "wrong channel blud", ephemeral: true });
-    return;
-  }
-
-  const memberRoles = interaction.member?.roles;
-  const hasRole = Array.isArray(memberRoles) ? memberRoles.includes(CONFIG.TRYOUT_ROLE_ID) : (memberRoles as any)?.cache.has(CONFIG.TRYOUT_ROLE_ID);
+  const roles = interaction.member?.roles;
+  const hasRole = roles instanceof GuildMemberRoleManager
+    ? roles.cache.has(CONFIG.TRYOUT_ROLE_ID)
+    : Array.isArray(roles) && roles.includes(CONFIG.TRYOUT_ROLE_ID);
 
   if (!hasRole) {
-    await interaction.reply({ content: "You do not have the required role.", ephemeral: true });
+    await interaction.reply({ content: "You do not have the required role to sign up.", ephemeral: true });
     return;
   }
 
+  cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
   await interaction.deferReply({ ephemeral: true });
+
   try {
-    const doc = await getDoc(qualifierSheetId);
+    const doc = await getDoc(QUALIFIER.SHEET_ID);
     const matchId = interaction.options.getString("matchid")?.toUpperCase() ?? "";
 
-    const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
-    const lastCol = CONFIG.SLOT_COLUMNS[CONFIG.SLOT_COLUMNS.length - 1];
+    const playerSheet = doc.sheetsByTitle[QUALIFIER.SHEETS.PLAYER_LIST];
+    const scheduleSheet = doc.sheetsByTitle[QUALIFIER.SHEETS.SCHEDULE];
+    const lastSlotCol = QUALIFIER.COLUMNS.PLAYER_SLOTS[QUALIFIER.COLUMNS.PLAYER_SLOTS.length - 1];
 
     await Promise.all([
-      playerSheet.loadCells(`A1:D200`),
-      sheet.loadCells(`A1:${lastCol}100`)
+      playerSheet.loadCells(`A1:D${QUALIFIER.LIMITS.MAX_PLAYER_ROWS}`),
+      scheduleSheet.loadCells(`A1:${lastSlotCol}${QUALIFIER.LIMITS.MAX_MATCH_ROWS}`)
     ]);
 
-    const username = getUsernameFromDiscordId(playerSheet, interaction.user.id, matchId);
-
-    if (!username) {
-      await interaction.editReply({ content: "Error: Discord ID not found in PlayerList." });
+    const playerData = findPlayerDataByDiscordId(playerSheet, userId);
+    if (!playerData) {
+      await interaction.editReply({ content: "Error: Your Discord ID was not found in the Player List." });
       return;
     }
 
-    const matchRow = findMatchRow(sheet, matchId);
+    const matchRow = findMatchRow(scheduleSheet, matchId);
     if (matchRow === -1) {
       await interaction.editReply({ content: `Could not find Qualifier ID: **${matchId}**` });
       return;
     }
 
-    const existingUser = findExistingUser(sheet, username);
-    if (existingUser) {
-      if (existingUser.row === matchRow) {
-        await interaction.editReply({ content: `You are already in lobby **${matchId}**.` });
+    const existingRegistration = findExistingUserSlot(scheduleSheet, playerData.username);
+    if (existingRegistration) {
+      if (existingRegistration.row === matchRow) {
+        await interaction.editReply({ content: `You are already registered for lobby **${matchId}**.` });
         return;
       }
-      sheet.getCellByA1(`${existingUser.col}${existingUser.row}`).value = "";
+      scheduleSheet.getCellByA1(`${existingRegistration.col}${existingRegistration.row}`).value = "";
     }
 
-    const targetCol = findFirstEmptySlot(sheet, matchRow);
+    const targetCol = findFirstEmptySlot(scheduleSheet, matchRow);
     if (!targetCol) {
-      await interaction.editReply({ content: `Qualifier **${matchId}** is full.Please try other lobby` });
+      await interaction.editReply({ content: `Qualifier **${matchId}** is full. Please try another lobby.` });
       return;
     }
 
-    sheet.getCellByA1(`${targetCol}${matchRow}`).value = username;
-    
+    scheduleSheet.getCellByA1(`${targetCol}${matchRow}`).value = playerData.username;
+    playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.CACHE_ASSIGNED_MATCH}${playerData.row}`).value = matchId;
+
     await Promise.all([
       playerSheet.saveUpdatedCells(),
-      sheet.saveUpdatedCells()
+      scheduleSheet.saveUpdatedCells()
     ]);
 
-    await interaction.editReply({ content: `Successfully assigned **${username}** to **${matchId}** (Slot ${targetCol}).` });
-    const logChannel = await interaction.client.channels.fetch(logChannelId);
-    const embed = new EmbedBuilder()
-      .setDescription(`**${username}** has signed up for qualifier Match **${matchId}**.`);
-    if (logChannel && 'send' in logChannel) {
+    await interaction.editReply({ content: `Successfully assigned **${playerData.username}** to **${matchId}** (Slot ${targetCol}).` });
+
+    const logChannel = await interaction.client.channels.fetch(CONFIG.LOG_CHANNEL_ID);
+    if (logChannel?.isTextBased()) {
+      const embed = new EmbedBuilder()
+        .setDescription(`**${playerData.username}** has signed up for qualifier Match **${matchId}**.`)
+        .setColor(0x00FF00);
       await logChannel.send({ embeds: [embed] });
     }
+
   } catch (error) {
-    console.error("Error:", error);
-    await interaction.editReply({ content: "An error occurred while updating the schedule. <@365086070754246657> has been notified." });
+    console.error("Signup Command Exception:", error);
+    await interaction.editReply({
+      content: `An error occurred while updating the schedule. <@${CONFIG.DEVELOPER_ID}> has been notified.`
+    });
   }
 }
-
 module.exports = { data, execute };
