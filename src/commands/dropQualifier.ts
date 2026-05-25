@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, EmbedBuilder,ChatInputCommandInteraction } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
-const { CONFIG,QUALIFIER } = require("../config");
+const { CONFIG, QUALIFIER } = require("../config");
 const cooldownMap = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
