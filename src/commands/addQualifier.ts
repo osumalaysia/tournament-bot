@@ -51,6 +51,16 @@ function findPlayerDataByDiscordId(playerSheet: typeof GoogleSpreadsheetWorkshee
   return null;
 }
 
+function checkPlayerPlayedBefore(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): boolean {
+  for (let row = 1; row <= QUALIFIER.LIMITS.MAX_PLAYER_ROWS; row++) {
+    const checkbBoxIfPlayed = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_PLAYED_BEFORE}${row}`).value;
+    if (checkbBoxIfPlayed === true) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
   const userId = interaction.user.id;
 
@@ -114,6 +124,11 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
         return;
       }
       scheduleSheet.getCellByA1(`${existingRegistration.col}${existingRegistration.row}`).value = "";
+    }
+    const hasPlayedBefore = checkPlayerPlayedBefore(playerSheet, playerData.username);
+    if (hasPlayedBefore) {
+      await interaction.editReply({ content: `You have already participated in a qualifier. You cannot sign up again.` });
+      return;
     }
 
     const targetCol = findFirstEmptySlot(scheduleSheet, matchRow);

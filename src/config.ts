@@ -17,6 +17,7 @@ export const QUALIFIER = {
     PLAYER_NAME: "A",
     DISCORD_ID: "C",
     CACHE_ASSIGNED_MATCH: "D",
+    PLAYER_PLAYED_BEFORE: "F",
     PLAYER_SLOTS: ["F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U"],
   },
   LIMITS: {
