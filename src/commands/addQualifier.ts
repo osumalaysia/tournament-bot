@@ -101,7 +101,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     const lastSlotCol = QUALIFIER.COLUMNS.PLAYER_SLOTS[QUALIFIER.COLUMNS.PLAYER_SLOTS.length - 1];
 
     await Promise.all([
-      playerSheet.loadCells(`A1:D${QUALIFIER.LIMITS.MAX_PLAYER_ROWS}`),
+      playerSheet.loadCells(`A1:F${QUALIFIER.LIMITS.MAX_PLAYER_ROWS}`),
       scheduleSheet.loadCells(`A1:${lastSlotCol}${QUALIFIER.LIMITS.MAX_MATCH_ROWS}`)
     ]);
 
