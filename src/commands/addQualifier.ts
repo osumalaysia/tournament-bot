@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder,GuildMemberRoleManager,ChatInputCommandInteraction } = require("discord.js");
+const { SlashCommandBuilder, EmbedBuilder, GuildMemberRoleManager, ChatInputCommandInteraction } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { CONFIG, QUALIFIER } = require("../config");
@@ -53,9 +53,13 @@ function findPlayerDataByDiscordId(playerSheet: typeof GoogleSpreadsheetWorkshee
 
 function checkPlayerPlayedBefore(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): boolean {
   for (let row = 1; row <= QUALIFIER.LIMITS.MAX_PLAYER_ROWS; row++) {
-    const checkbBoxIfPlayed = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_PLAYED_BEFORE}${row}`).value;
-    if (checkbBoxIfPlayed === true) {
-      return true;
+    for (const col of QUALIFIER.COLUMNS.PLAYER_SLOTS) {
+      if (playerSheet.getCellByA1(`${col}${row}`).value?.toString() === username) {
+        const checkbBoxIfPlayed = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_PLAYED_BEFORE}${row}`).value;
+        if (checkbBoxIfPlayed === true) {
+          return true;
+        }
+      }
     }
   }
   return false;
