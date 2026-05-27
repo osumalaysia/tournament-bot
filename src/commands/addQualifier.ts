@@ -53,17 +53,16 @@ function findPlayerDataByDiscordId(playerSheet: typeof GoogleSpreadsheetWorkshee
 
 function checkPlayerPlayedBefore(playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): boolean {
   for (let row = 1; row <= QUALIFIER.LIMITS.MAX_PLAYER_ROWS; row++) {
-    for (const col of QUALIFIER.COLUMNS.PLAYER_SLOTS) {
-      if (playerSheet.getCellByA1(`${col}${row}`).value?.toString() === username) {
+      if (playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_NAME}${row}`).value?.toString() === username) {
         const checkbBoxIfPlayed = playerSheet.getCellByA1(`${QUALIFIER.COLUMNS.PLAYER_PLAYED_BEFORE}${row}`).value;
         if (checkbBoxIfPlayed === true) {
           return true;
         }
       }
     }
-  }
   return false;
-}
+  }
+
 
 export async function execute(interaction: typeof ChatInputCommandInteraction): Promise<void> {
   const userId = interaction.user.id;
