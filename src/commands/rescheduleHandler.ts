@@ -192,7 +192,14 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const dateObj = convertDate(newDateStr, newTimeStr);
 
     if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
-
+    const currentYear = new Date().getFullYear();
+    const allowedStart = new Date(currentYear, 5, 2, 0, 0, 0); 
+    const allowedEnd = new Date(currentYear, 5, 15, 23, 59, 59);
+    if (dateObj < allowedStart || dateObj > allowedEnd) {
+        return interaction.editReply({ 
+            content: "You can only reschedule matches to dates between **June 2** and **June 15**." 
+        });
+    }
     const doc = await getDoc(bracketMatchSheetId);
 
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
