@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder } = require("discord.js");
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, MessageFlags } = require("discord.js");
 const { getDoc } = require("../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
@@ -167,7 +167,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
         const expirationTime = cooldownMap.get(userId)!;
         if (now < expirationTime) {
             const timeLeft = Math.round((expirationTime - now) / 1000);
-            await interaction.reply({ content: `Please wait ${timeLeft} more second(s) before using this command again.`, ephemeral: true });
+            await interaction.reply({ 
+                content: `Please wait ${timeLeft} more second(s) before using this command again.`, 
+                flags: [MessageFlags.Ephemeral] 
+            });
             return;
         }
     }
@@ -240,14 +243,17 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
     collector.on("collect", async (i: any) => {
         if (i.user.id !== opponentId) {
-            await i.reply({ content: "You are not authorized to respond to this request.", ephemeral: true });
+            await i.reply({ 
+                content: "You are not authorized to respond to this request.", 
+                flags: [MessageFlags.Ephemeral] 
+            });
             return;
         }
 
         await i.deferUpdate();
 
         if (i.customId === "reject") {
-            await i.update({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
+            await sentMessage.edit({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
             return collector.stop("rejected");
         }
 
@@ -257,7 +263,8 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 sheet.getCellByA1(`D${match.row}`).value = convertDateFormat(newDateStr);
                 await sheet.saveUpdatedCells();
 
-                await i.update({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
+                await sentMessage.edit({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
+                
                 const logChannel = await interaction.client.channels.fetch(logChannelId);
                 const embed = new EmbedBuilder()
                     .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
@@ -277,7 +284,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                 return collector.stop("accepted");
             } catch (err) {
                 console.error(err);
-                await i.reply({ content: "Failed to update sheet.", ephemeral: true });
+                await i.followUp({ 
+                    content: "Failed to update sheet.", 
+                    flags: [MessageFlags.Ephemeral] 
+                });
             }
         }
     });
