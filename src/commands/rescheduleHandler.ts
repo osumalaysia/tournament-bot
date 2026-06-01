@@ -8,6 +8,7 @@ const CONFIG = {
     SHEET_END_ROW: 210,
     SHEET_TITLE: "Schedule",
     PLAYER_SHEET: "PlayerList",
+    STAFF_SHEET: "staffList",
     TIMEZONE_OFFSET_GMT8: "GMT+08:00",
     COOLDOWN_SECONDS: 300,
 };
@@ -74,6 +75,16 @@ const getDiscordIdFromUsername = (playerSheet: typeof GoogleSpreadsheetWorksheet
     }
     return null;
 }
+
+const getStaffidFromUsername = (staffSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null => {
+    for (let r = 1; r <= 100; r++) {
+        const usernameCell = staffSheet.getCellByA1(`A${r}`).value;
+        if (usernameCell?.toString() === username) {
+            return staffSheet.getCellByA1(`B${r}`).value?.toString() || null;
+        }
+    }
+    return null;
+};
 
 const toDiscordTimestamp = (date: Date): string => {
     const unix = Math.floor(date.getTime() / 1000) - 8 * 60 * 60;
@@ -179,6 +190,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const newDayStr = interaction.options.getString("newday");
     const newDateStr = `${newMonthStr}-${newDayStr}`;
     const dateObj = convertDate(newDateStr, newTimeStr);
+
     if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
 
     const doc = await getDoc(bracketMatchSheetId);
@@ -234,6 +246,8 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             return;
         }
 
+        await i.deferUpdate();
+
         if (i.customId === "reject") {
             await i.update({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
             return collector.stop("rejected");
@@ -251,10 +265,14 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                     .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
                 if (logChannel && 'send' in logChannel) {
                     const staffNames = getStaffNames(sheet, matchId);
-                    const refereeName = staffNames?.referee;
-                    const streamerName = staffNames?.streamer;
+                    const refereeid = getStaffidFromUsername(playerSheet, staffNames?.referee || "") || "unknown";
+                    const staffid = getStaffidFromUsername(playerSheet, staffNames?.streamer || "") || "unknown";
+                    const pings = [];
+                    if (refereeid) pings.push(`@${refereeid}`);
+                    if (staffid) pings.push(`@${staffid}`);
+                    const contentString = pings.length > 0 ? pings.join(" ") : undefined;
                     await logChannel.send({
-                        content: `@${refereeName} @${streamerName}`,
+                        content: contentString,
                         embeds: [embed]
                     });
                 }
