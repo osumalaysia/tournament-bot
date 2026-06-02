@@ -160,147 +160,322 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: typeof ChatInputCommandInteraction) {
+    // Cooldown check
     const userId = interaction.user.id;
     const now = Date.now();
 
-    if (cooldownMap.has(userId)) {
-        const expirationTime = cooldownMap.get(userId)!;
-        if (now < expirationTime) {
-            const timeLeft = Math.round((expirationTime - now) / 1000);
-            await interaction.reply({ 
-                content: `Please wait ${timeLeft} more second(s) before using this command again.`, 
-                flags: [MessageFlags.Ephemeral] 
-            });
-            return;
-        }
+    if (isOnCooldown(userId, now)) {
+        const timeLeft = getCooldownRemaining(userId, now);
+        await handleCooldownResponse(interaction, timeLeft);
+        return;
     }
 
-    await interaction.deferReply();
+    // Set cooldown and defer reply
     cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
+    await interaction.deferReply();
 
-    const matchId = interaction.options.getString("matchid").toUpperCase();
-    const newTimeStr = interaction.options.getString("newtime");
-    const newMonthStr = interaction.options.getString("newmonth");
-    const newDayStr = interaction.options.getString("newday");
-    const newDateStr = `${newMonthStr}-${newDayStr}`;
-    const dateObj = convertDate(newDateStr, newTimeStr);
+    try {
+        // Extract options
+        const {
+            matchId,
+            newTimeStr,
+            newMonthStr,
+            newDayStr
+        } = extractInteractionOptions(interaction);
 
-    if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
-    const currentYear = new Date().getFullYear();
-    const allowedStart = new Date(currentYear, 5, 2, 0, 0, 0); 
-    const allowedEnd = new Date(currentYear, 5, 15, 23, 59, 59);
-    if (dateObj < allowedStart || dateObj > allowedEnd) {
-        return interaction.editReply({ 
-            content: "You can only reschedule matches to dates between **June 2** and **June 15**." 
+        // Validate date and time
+        const newDateStr = `${newMonthStr}-${newDayStr}`;
+        const dateObj = convertDate(newDateStr, newTimeStr);
+
+        if (!dateObj) {
+            throw new Error("Invalid date/time format.");
+        }
+
+        // Validate date range
+        validateDateRange(dateObj, "06-02", "06-15", "June 2", "June 15");
+
+        // Load documents and sheets
+        const [doc, playerSheet, sheet] = await loadSheets();
+
+        // Verify player identity
+        const username = getUsernameFromDiscordId(playerSheet, userId);
+        if (!username) {
+            throw new Error("Could not find your Discord ID in the registered player list.");
+        }
+
+        // Find and validate match
+        const match = getMatchRow(sheet, username, matchId);
+        if (!match || !match.hasTime || !match.hasDate) {
+            throw new Error(`Match ID **${matchId}** not found, or you are not a player in it.`);
+        }
+
+        // Get opponent details
+        const opponentUsername = username === match.player1 ? match.player2 : match.player1;
+        const opponentId = getDiscordIdFromUsername(playerSheet, opponentUsername);
+        if (!opponentId) {
+            throw new Error("Could not find opponent Discord ID.");
+        }
+
+        // Prepare reschedule request
+        const discordTs = toDiscordTimestamp(dateObj);
+        const messageContent = formatRescheduleMessage(matchId, opponentId, interaction.user.id, discordTs);
+        const actionRow = createActionRow();
+
+        // Send request and handle response
+        const sentMessage = await interaction.editReply({
+            content: messageContent,
+            components: [actionRow]
         });
-    }
-    const doc = await getDoc(bracketMatchSheetId);
 
+        await handleRescheduleResponse(
+            sentMessage,
+            opponentId,
+            match,
+            newTimeStr,
+            newDateStr,
+            discordTs,
+            sheet,
+            playerSheet
+        );
+
+    } catch (error) {
+        await handleInteractionError(interaction, error);
+    }
+}
+
+// Helper functions
+function isOnCooldown(userId: string, now: number): boolean {
+    return cooldownMap.has(userId) && now < cooldownMap.get(userId)!;
+}
+
+function getCooldownRemaining(userId: string, now: number): number {
+    return Math.round((cooldownMap.get(userId)! - now) / 1000);
+}
+
+async function handleCooldownResponse(interaction: any, timeLeft: number) {
+    await interaction.reply({
+        content: `Please wait ${timeLeft} more second(s) before using this command again.`,
+        flags: [MessageFlags.Ephemeral]
+    });
+}
+
+function extractInteractionOptions(interaction: any) {
+    return {
+        matchId: interaction.options.getString("matchid").toUpperCase(),
+        newTimeStr: interaction.options.getString("newtime"),
+        newMonthStr: interaction.options.getString("newmonth"),
+        newDayStr: interaction.options.getString("newday")
+    };
+}
+
+function validateDateRange(dateObj: Date, startDate: string, endDate: string, displayStart: string, displayEnd: string) {
+    const currentYear = new Date().getFullYear();
+
+    const startDateObj = new Date(currentYear,5, 2, 0, 0, 0);
+    const endDateObj = new Date(currentYear, 5 , 15, 23, 59, 59);
+
+    if (dateObj < startDateObj || dateObj > endDateObj) {
+        throw new Error(`You can only reschedule matches to dates between **${displayStart}** and **${displayEnd}**.`);
+    }
+}
+
+async function loadSheets() {
+    const doc = await getDoc(bracketMatchSheetId);
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    if (!sheet) return interaction.editReply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.` });
-    if (!playerSheet) return interaction.editReply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.` });
+
+    if (!sheet) throw new Error(`Sheet '${CONFIG.SHEET_TITLE}' not found.`);
+    if (!playerSheet) throw new Error(`Sheet '${CONFIG.PLAYER_SHEET}' not found.`);
 
     await Promise.all([
         sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
         playerSheet.loadCells(`A1:F150`)
     ]);
 
-    const username = getUsernameFromDiscordId(playerSheet, interaction.user.id);
-    if (!username) {
-        return interaction.editReply({ content: "Error: Could not find your Discord ID in the registered player list." });
-    }
+    return [doc, playerSheet, sheet];
+}
 
-    const match = getMatchRow(sheet, username, matchId);
-    if (!match || !match.hasTime || !match.hasDate) {
-        return interaction.editReply({ content: `Match ID **${matchId}** not found, or you are not a player in it.` });
-    }
+function formatRescheduleMessage(matchId: string, opponentId: string, userId: string, timestamp: string): string {
+    return `Hey <@${opponentId}>! <@${userId}> wants to reschedule **${matchId}** to ${timestamp}`;
+}
 
-    const opponentUsername = username === match.player1 ? match.player2 : match.player1;
-    const opponentId = opponentUsername ? getDiscordIdFromUsername(playerSheet, opponentUsername) : null;
+function createActionRow() {
+    return new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId("accept")
+                .setLabel("Accept")
+                .setStyle(ButtonStyle.Success),
+            new ButtonBuilder()
+                .setCustomId("reject")
+                .setLabel("Reject")
+                .setStyle(ButtonStyle.Danger)
+        );
+}
 
-    if (!opponentId) {
-        return interaction.editReply({ content: `Could not find opponent Discord ID.` });
-    }
-
-    const discordTs = toDiscordTimestamp(dateObj);
-    const messageText = `Hey <@${opponentId}>! <@${interaction.user.id}> wants to reschedule **${matchId}** to ${discordTs}`;
-
-    const buttons = new ActionRowBuilder().addComponents(
-        new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success),
-        new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger)
-    );
-
-    const sentMessage = await interaction.editReply({
-        content: messageText,
-        components: [buttons]
-    });
-
-    const collector = sentMessage.createMessageComponentCollector({
+async function handleRescheduleResponse(
+    message: any,
+    opponentId: string,
+    match: any,
+    newTimeStr: string,
+    newDateStr: string,
+    discordTs: string,
+    sheet: any,
+    playerSheet: any
+) {
+    const collector = message.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 5 * 60 * 1000
     });
 
     collector.on("collect", async (i: any) => {
-        if (i.user.id !== opponentId) {
-            await i.reply({ 
-                content: "You are not authorized to respond to this request.", 
-                flags: [MessageFlags.Ephemeral] 
-            });
-            return;
-        }
-
-        await i.deferUpdate();
-
-        if (i.customId === "reject") {
-            await sentMessage.edit({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
-            return collector.stop("rejected");
-        }
-
-        if (i.customId === "accept") {
-            try {
-                sheet.getCellByA1(`E${match.row}`).value = convertFraction(Number(newTimeStr));
-                sheet.getCellByA1(`D${match.row}`).value = convertDateFormat(newDateStr);
-                await sheet.saveUpdatedCells();
-
-                await sentMessage.edit({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
-                
-                const logChannel = await interaction.client.channels.fetch(logChannelId);
-                const embed = new EmbedBuilder()
-                    .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
-                if (logChannel && 'send' in logChannel) {
-                    const staffNames = getStaffNames(sheet, matchId);
-                    const refereeid = getStaffidFromUsername(playerSheet, staffNames?.referee || "") || "unknown";
-                    const staffid = getStaffidFromUsername(playerSheet, staffNames?.streamer || "") || "unknown";
-                    const pings = [];
-                    if (refereeid) pings.push(`@${refereeid}`);
-                    if (staffid) pings.push(`@${staffid}`);
-                    const contentString = pings.length > 0 ? pings.join(" ") : undefined;
-                    await logChannel.send({
-                        content: contentString,
-                        embeds: [embed]
-                    });
-                }
-                return collector.stop("accepted");
-            } catch (err) {
-                console.error(err);
-                await i.followUp({ 
-                    content: "Failed to update sheet.", 
-                    flags: [MessageFlags.Ephemeral] 
+        try {
+            if (i.user.id !== opponentId) {
+                await i.reply({
+                    content: "You are not authorized to respond to this request.",
+                    flags: [MessageFlags.Ephemeral]
                 });
+                return;
             }
+
+            await i.deferUpdate();
+
+            if (i.customId === "reject") {
+                await updateMessage(message, `~~${message.content}~~\n:cross mark: <@${opponentId}> rejected!`);
+                collector.stop("rejected");
+                return;
+            }
+
+            if (i.customId === "accept") {
+                await updateMatchSchedule(
+                    sheet,
+                    match.row,
+                    newTimeStr,
+                    newDateStr
+                );
+
+                await updateMessage(
+                    message,
+                    `~~${message.content}~~\n:check mark: <@${opponentId}> accepted!`
+                );
+
+                await logReschedule(
+                    playerSheet,
+                    sheet,
+                    message.client,
+                    match.id,
+                    discordTs
+                );
+
+                collector.stop("accepted");
+            }
+        } catch (error) {
+            console.error("Error in collector:", error);
+            await i.followUp({
+                content: "An error occurred while processing your response.",
+                flags: [MessageFlags.Ephemeral]
+            });
         }
     });
 
     collector.on("end", async (_: any, reason: string) => {
-        if (reason !== "accepted" && reason !== "rejected") {
-            const disabledRow = new ActionRowBuilder().addComponents(
-                new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success).setDisabled(true),
-                new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger).setDisabled(true)
+        if (reason === "time") {
+            const disabledRow = createDisabledActionRow();
+            await updateMessage(
+                message,
+                `~~${message.content}~~\n:hourglass flowing: Reschedule request timed out`,
+                [disabledRow]
             );
-            await sentMessage.edit({ content: `~~${messageText}~~\n⏳ Reschedule request timed out`, components: [disabledRow] }).catch(() => { });
         }
     });
+}
+
+async function updateMessage(message: any, content: string, components: any[] = []) {
+    try {
+        await message.edit({ content, components });
+    } catch (error) {
+        console.error("Failed to update message:", error);
+    }
+}
+
+async function updateMatchSchedule(
+    sheet: any,
+    row: number,
+    newTimeStr: string,
+    newDateStr: string
+) {
+    sheet.getCellByA1(`E${row}`).value = convertFraction(Number(newTimeStr));
+    sheet.getCellByA1(`D${row}`).value = convertDateFormat(newDateStr);
+    await sheet.saveUpdatedCells();
+}
+
+function createDisabledActionRow() {
+    return new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId("accept")
+                .setLabel("Accept")
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(true),
+            new ButtonBuilder()
+                .setCustomId("reject")
+                .setLabel("Reject")
+                .setStyle(ButtonStyle.Danger)
+                .setDisabled(true)
+        );
+}
+
+async function logReschedule(
+    playerSheet: any,
+    sheet: any,
+    client: any,
+    matchId: string,
+    discordTs: string
+) {
+    try {
+        const logChannel = await client.channels.fetch(logChannelId);
+        if (!logChannel || !logChannel.send) return;
+
+        const staffNames = getStaffNames(sheet, matchId);
+        const pings = [];
+
+        if (staffNames?.referee) {
+            const refereeId = getStaffidFromUsername(playerSheet, staffNames.referee);
+            if (refereeId) pings.push(`<@${refereeId}>`);
+        }
+
+        if (staffNames?.streamer) {
+            const streamerId = getStaffidFromUsername(playerSheet, staffNames.streamer);
+            if (streamerId) pings.push(`<@${streamerId}>`);
+        }
+
+        const embed = new EmbedBuilder()
+            .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
+
+        await logChannel.send({
+            content: pings.length > 0 ? pings.join(" ") : undefined,
+            embeds: [embed]
+        });
+    } catch (error) {
+        console.error("Error logging reschedule:", error);
+    }
+}
+
+async function handleInteractionError(interaction: any, error: unknown) {
+    console.error("Error in reschedule command:", error);
+
+    const errorMessage = error instanceof Error
+        ? `Error: ${error.message}`
+        : "An unexpected error occurred.";
+
+    if (interaction.deferred || interaction.replied) {
+        await interaction.editReply({ content: errorMessage });
+    } else {
+        await interaction.reply({
+            content: errorMessage,
+            flags: [MessageFlags.Ephemeral]
+        });
+    }
 }
 
 module.exports = { data, execute };
