@@ -118,7 +118,6 @@ const getStaffidFromUsername = (staffRows:any, username:any) => {
 
 const getMatchRow = (sheet: any, username: any, matchId: any) => {
     if (!sheet || !username || !matchId) return null;
-
     const targetUser = String(username).trim().toLowerCase();
     const targetMatchId = String(matchId).trim().toUpperCase();
 
@@ -135,7 +134,8 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
             const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
             if (!matchIdCell || !matchIdCell.value) continue;
             if (i <10 ){
-            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}"`);
+            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof(matchIdCell.value)}"`);
+            console.log(typeof(matchId));
             }
             const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
 
