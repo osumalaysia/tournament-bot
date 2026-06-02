@@ -134,7 +134,9 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
         try {
             const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
             if (!matchIdCell || !matchIdCell.value) continue;
-
+            if (i <10 ){
+            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}"`);
+            }
             const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
 
             if (currentMatchId === targetMatchId) {
