@@ -10,7 +10,7 @@ const CONFIG = {
     PLAYER_SHEET: "PlayerList",
     STAFF_SHEET: "staffList",
     TIMEZONE_OFFSET_GMT8: "GMT+08:00",
-    COOLDOWN_SECONDS: 300,
+    COOLDOWN_SECONDS: 0,
 };
 const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map<string, number>();
@@ -56,27 +56,38 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
-const getUsernameFromDiscordId = (playerSheet: typeof GoogleSpreadsheetWorksheet, discordId: string): string | null => {
+const getUsernameFromDiscordId = async (playerSheet:typeof GoogleSpreadsheetWorksheet,discordId: string): Promise<string | null> => {
+    const range = `F1:F200`;
+    await playerSheet.loadCells(range);
+
     for (let r = 1; r <= 200; r++) {
         const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
         if (discordIdCell?.toString().trim() === discordId) {
+            await playerSheet.loadCells(`A${r}:A${r}`);
             return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
         }
     }
     return null;
 }
 
-const getDiscordIdFromUsername = (playerSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null => {
+const getDiscordIdFromUsername = async (playerSheet:typeof GoogleSpreadsheetWorksheet,username: string): Promise<string | null> => {
+    const range = `A1:A200`; 
+    await playerSheet.loadCells(range);
+
     for (let r = 1; r <= 200; r++) {
         const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
         if (usernameCell?.toString() === username) {
+            
+            await playerSheet.loadCells(`F${r}:F${r}`);
             return playerSheet.getCellByA1(`F${r}`).value?.toString() || null;
         }
     }
     return null;
 }
 
-const getStaffidFromUsername = (staffSheet: typeof GoogleSpreadsheetWorksheet, username: string): string | null => {
+const getStaffidFromUsername = async (staffSheet: any, username: string): Promise<string | null> => {
+    await staffSheet.loadCells('A1:B100');
+
     for (let r = 1; r <= 100; r++) {
         const usernameCell = staffSheet.getCellByA1(`A${r}`).value;
         if (usernameCell?.toString() === username) {
@@ -91,12 +102,16 @@ const toDiscordTimestamp = (date: Date): string => {
     return `<t:${unix}:f>`;
 };
 
-const getMatchRow = (sheet: typeof GoogleSpreadsheetWorksheet, username: string, matchId: string) => {
-    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
+const getMatchRow = async (sheet: typeof GoogleSpreadsheetWorksheet, username: string, matchId: string) => {
+    // Load all necessary columns at once
+    await sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
 
+    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
         const id = sheet.getCellByA1(`B${row}`).value;
         const player1 = sheet.getCellByA1(`F${row}`).value?.toString();
         const player2 = sheet.getCellByA1(`I${row}`).value?.toString();
+        const dateCell = sheet.getCellByA1(`D${row}`).value;
+        const timeCell = sheet.getCellByA1(`E${row}`).value;
 
         const isParticipant = player1 === username || player2 === username;
 
@@ -106,16 +121,17 @@ const getMatchRow = (sheet: typeof GoogleSpreadsheetWorksheet, username: string,
                 id,
                 player1,
                 player2,
-
-                hasDate: typeof sheet.getCellByA1(`D${row}`).value === "number",
-                hasTime: typeof sheet.getCellByA1(`E${row}`).value === "number",
+                hasDate: typeof dateCell === "number",
+                hasTime: typeof timeCell === "number",
             };
         }
     }
     return null;
 };
 
-const getStaffNames = (sheet: typeof GoogleSpreadsheetWorksheet, matchId: string): { referee: string | null, streamer: string | null } | null => {
+const getStaffNames = async (sheet: typeof GoogleSpreadsheetWorksheet, matchId: string) => {
+    await sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
+
     for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
         const id = sheet.getCellByA1(`B${row}`).value;
         if (id === matchId) {
@@ -160,7 +176,6 @@ export const data = new SlashCommandBuilder()
     );
 
 export async function execute(interaction: typeof ChatInputCommandInteraction) {
-    // Cooldown check
     const userId = interaction.user.id;
     const now = Date.now();
 
@@ -170,12 +185,10 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
         return;
     }
 
-    // Set cooldown and defer reply
     cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
     await interaction.deferReply();
 
     try {
-        // Extract options
         const {
             matchId,
             newTimeStr,
@@ -183,7 +196,6 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             newDayStr
         } = extractInteractionOptions(interaction);
 
-        // Validate date and time
         const newDateStr = `${newMonthStr}-${newDayStr}`;
         const dateObj = convertDate(newDateStr, newTimeStr);
 
@@ -191,37 +203,29 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             throw new Error("Invalid date/time format.");
         }
 
-        // Validate date range
         validateDateRange(dateObj, "06-02", "06-15", "June 2", "June 15");
 
-        // Load documents and sheets
         const [doc, playerSheet, sheet] = await loadSheets();
 
-        // Verify player identity
-        const username = getUsernameFromDiscordId(playerSheet, userId);
+        const username = await getUsernameFromDiscordId(playerSheet, userId);        
         if (!username) {
             throw new Error("Could not find your Discord ID in the registered player list.");
         }
 
-        // Find and validate match
-        const match = getMatchRow(sheet, username, matchId);
+        const match = await getMatchRow(sheet, username, matchId);
         if (!match || !match.hasTime || !match.hasDate) {
             throw new Error(`Match ID **${matchId}** not found, or you are not a player in it.`);
         }
 
-        // Get opponent details
-        const opponentUsername = username === match.player1 ? match.player2 : match.player1;
-        const opponentId = getDiscordIdFromUsername(playerSheet, opponentUsername);
+       const opponentUsername = username === match.player1 ? match.player2 : match.player1;
+        const opponentId = await getDiscordIdFromUsername(playerSheet, opponentUsername);
         if (!opponentId) {
             throw new Error("Could not find opponent Discord ID.");
         }
-
-        // Prepare reschedule request
         const discordTs = toDiscordTimestamp(dateObj);
         const messageContent = formatRescheduleMessage(matchId, opponentId, interaction.user.id, discordTs);
         const actionRow = createActionRow();
 
-        // Send request and handle response
         const sentMessage = await interaction.editReply({
             content: messageContent,
             components: [actionRow]
@@ -243,7 +247,6 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
     }
 }
 
-// Helper functions
 function isOnCooldown(userId: string, now: number): boolean {
     return cooldownMap.has(userId) && now < cooldownMap.get(userId)!;
 }
@@ -436,16 +439,16 @@ async function logReschedule(
         const logChannel = await client.channels.fetch(logChannelId);
         if (!logChannel || !logChannel.send) return;
 
-        const staffNames = getStaffNames(sheet, matchId);
+        const staffNames = await getStaffNames(sheet, matchId);
         const pings = [];
 
         if (staffNames?.referee) {
-            const refereeId = getStaffidFromUsername(playerSheet, staffNames.referee);
+            const refereeId = await getStaffidFromUsername(playerSheet, staffNames.referee);
             if (refereeId) pings.push(`<@${refereeId}>`);
         }
 
         if (staffNames?.streamer) {
-            const streamerId = getStaffidFromUsername(playerSheet, staffNames.streamer);
+            const streamerId = await getStaffidFromUsername(playerSheet, staffNames.streamer);
             if (streamerId) pings.push(`<@${streamerId}>`);
         }
 
