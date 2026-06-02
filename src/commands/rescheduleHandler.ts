@@ -106,11 +106,21 @@ const getDiscordIdFromUsername = (PLAYER_SHEET: any, username: any) => {
     return null;
 };
 
-const getStaffidFromUsername = (staffRows: any, username: any) => {
-    for (const row of staffRows) {
-        const rowData = row.toObject();
-        if (String(rowData["Username"] || "").trim() === username.trim()) {
-            return String(rowData["StaffID"] || "").trim() || null;
+const getStaffidFromUsername = (staff: any, username: any) => {
+   for (let i = 0; i < 100; i++) {
+        try {
+            const usernameCell = staff.getCell(i, 0);
+            if (usernameCell && usernameCell.value) {
+                const sheetUser = String(usernameCell.value).trim().toLowerCase();
+                const targetUser = String(username).trim().toLowerCase();
+
+                if (sheetUser === targetUser) {
+                    const staffIdCell = staff.getCell(i, 1);
+                    return staffIdCell && staffIdCell.value ? String(staffIdCell.value).trim() : null;
+                }
+            }
+        } catch (e) {
+            continue;
         }
     }
     return null;
@@ -144,12 +154,7 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
 
                 const player1 = p1Cell && p1Cell.value ? String(p1Cell.value).trim() : "";
                 const player2 = p2Cell && p2Cell.value ? String(p2Cell.value).trim() : "";
-                console.log(`=== PARTICIPANT DIAGNOSTIC FOR ROW ${i + 1} ===`);
-                console.log(`Sheet Player 1: "${player1.toLowerCase()}"`);
-                console.log(`Sheet Player 2: "${player2.toLowerCase()}"`);
-                console.log(`Your Registered Username: "${targetUser}"`);
-                console.log(`=============================================`);
-                console.log(`Checking if user is a participant: ${player1.toLowerCase() === targetUser} || ${player2.toLowerCase() === targetUser}`);
+
                 const isParticipant = player1.toLowerCase() === targetUser || player2.toLowerCase() === targetUser;
 
                 if (isParticipant) {
@@ -158,10 +163,6 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
                     const dateCell = sheet.getCell(i, COL_DATE);
                     const timeCell = sheet.getCell(i, COL_TIME);
 
-                    console.log(`Referee: "${refCell && refCell.value ? String(refCell.value).trim() : "N/A"}"`);
-                    console.log(`Streamer: "${streamCell && streamCell.value ? String(streamCell.value).trim() : "N/A"}"`);
-                    console.log(`Date Cell Value: "${dateCell && dateCell.value !== undefined && dateCell.value !== null ? String(dateCell.value).trim() : "N/A"}"`);
-                    console.log(`Time Cell Value: "${timeCell && timeCell.value !== undefined && timeCell.value !== null ? String(timeCell.value).trim() : "N/A"}"`);
                     return {
                         rowIndex: i,
                         id: currentMatchId,
