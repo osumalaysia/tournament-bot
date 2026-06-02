@@ -62,26 +62,30 @@ const toDiscordTimestamp = (date:any) => {
 };
 
 
-const getUsernameFromDiscordId = (playerRows:any, discordId:any) => {
-    for (const row of playerRows) {
-        const rowData = row.toObject();
-        if (String(rowData["DiscordID"] || "").trim() === discordId.trim()) {
-            return String(rowData["Username"] || "").trim() || null;
+const getUsernameFromDiscordId = (PLAYER_SHEET:any, discordId:any) => {
+    const rowCount = PLAYER_SHEET.rowCount;
+    for (let i = 0; i < rowCount; i++) {
+        const discordIdCell = PLAYER_SHEET.getCell(i, 5);
+        if (discordIdCell && String(discordIdCell.value || "").trim() === discordId.trim()) {
+            const usernameCell = PLAYER_SHEET.getCell(i, 0);
+            return usernameCell ? String(usernameCell.value || "").trim() : null;
         }
     }
     return null;
 };
 
-const getDiscordIdFromUsername = (playerRows:any, username:any) => {
-    for (const row of playerRows) {
-        const rowData = row.toObject();
-        if (String(rowData["Username"] || "").trim() === username.trim()) {
-            return String(rowData["DiscordID"] || "").trim() || null;
+const getDiscordIdFromUsername = (PLAYER_SHEET:any, username:any) => {
+    const rowCount = PLAYER_SHEET.rowCount;
+    for (let i = 0; i < rowCount; i++) {
+        const usernameCell = PLAYER_SHEET.getCell(i, 0);
+        if (usernameCell && String(usernameCell.value || "").trim() === username.trim()) {
+            const discordIdCell = PLAYER_SHEET.getCell(i, 5);
+            return discordIdCell ? String(discordIdCell.value || "").trim() : null;
         }
     }
     return null;
 };
-
+    
 const getStaffidFromUsername = (staffRows:any, username:any) => {
     for (const row of staffRows) {
         const rowData = row.toObject();
@@ -203,7 +207,6 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("One or more required sheets not found.");
         }
 
-        let scheduleRows, playerRows, staffRows;
         try {
            await Promise.all([
             sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
@@ -215,12 +218,12 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("Failed to load sheet data.");
         }
 
-        const username = getUsernameFromDiscordId(playerRows, userId);
+        const username = getUsernameFromDiscordId(playerSheet, userId);
         if (!username) {
             throw new Error("Could not find your Discord ID in the registered player list.");
         }
 
-        const match = getMatchRow(scheduleRows, username, matchId);
+        const match = getMatchRow(sheet, username, matchId);
         if (!match) {
             throw new Error(`Match ID **${matchId}** not found.`);
         }
@@ -234,7 +237,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("Could not determine opponent.");
         }
 
-        const opponentId = getDiscordIdFromUsername(playerRows, opponentUsername);
+        const opponentId = getDiscordIdFromUsername(playerSheet, opponentUsername);
         if (!opponentId) {
             throw new Error("Could not find opponent Discord ID.");
         }
@@ -325,11 +328,11 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
                             const pings = [];
                             if (match.referee) {
-                                const refereeId = getStaffidFromUsername(staffRows, match.referee);
+                                const refereeId = getStaffidFromUsername(staffSheet, match.referee);
                                 if (refereeId && refereeId !== "unknown") pings.push(`<@${refereeId}>`);
                             }
                             if (match.streamer) {
-                                const staffId = getStaffidFromUsername(staffRows, match.streamer);
+                                const staffId = getStaffidFromUsername(staffSheet, match.streamer);
                                 if (staffId && staffId !== "unknown") pings.push(`<@${staffId}>`);
                             }
 
