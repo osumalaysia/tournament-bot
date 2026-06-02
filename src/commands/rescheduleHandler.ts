@@ -62,26 +62,44 @@ const toDiscordTimestamp = (date:any) => {
 };
 
 
-const getUsernameFromDiscordId = (PLAYER_SHEET:any, discordId:any) => {
-    for (let i = 0; i < 200; i++) {
-        const discordIdCell = PLAYER_SHEET.getCell(i, 5);
-        if (discordIdCell && String(discordIdCell.value || "").trim() === discordId.trim()) {
-            const usernameCell = PLAYER_SHEET.getCell(i, 0);
-            console.log(discordId);
-            console.log(discordIdCell)
-            return usernameCell ? String(usernameCell.value || "").trim() : null;
+const getUsernameFromDiscordId = (PLAYER_SHEET: any, discordId: any) => {
+    if (!PLAYER_SHEET || !discordId) return null;
+    const targetId = String(discordId).trim();
+        for (let i = 0; i < 200; i++) {
+        try {
+            const discordIdCell = PLAYER_SHEET.getCell(i, 5); 
+            if (discordIdCell && discordIdCell.value !== null && discordIdCell.value !== undefined) {
+                const sheetValue = String(discordIdCell.value).trim();
+                
+                if (sheetValue === targetId) {
+                    const usernameCell = PLAYER_SHEET.getCell(i, 0); 
+                    return usernameCell && usernameCell.value ? String(usernameCell.value).trim() : null;
+                }
+            }
+        } catch (e) {
+            continue;
         }
     }
     return null;
 };
 
-const getDiscordIdFromUsername = (PLAYER_SHEET:any, username:any) => {
-    const limit = Math.min(PLAYER_SHEET.rowCount, 200);
-    for (let i = 0; i < limit; i++) {
-        const usernameCell = PLAYER_SHEET.getCell(i, 0);
-        if (usernameCell && String(usernameCell.value || "").trim() === username.trim()) {
-            const discordIdCell = PLAYER_SHEET.getCell(i, 5);
-            return discordIdCell ? String(discordIdCell.value || "").trim() : null;
+const getDiscordIdFromUsername = (PLAYER_SHEET: any, username: any) => {
+    if (!PLAYER_SHEET || !username) return null;
+    const targetUser = String(username).trim().toLowerCase();
+
+    for (let i = 0; i < 200; i++) {
+        try {
+            const usernameCell = PLAYER_SHEET.getCell(i, 0); 
+            if (usernameCell && usernameCell.value) {
+                const sheetUser = String(usernameCell.value).trim().toLowerCase();
+                
+                if (sheetUser === targetUser) {
+                    const discordIdCell = PLAYER_SHEET.getCell(i, 5); 
+                    return discordIdCell && discordIdCell.value ? String(discordIdCell.value).trim() : null;
+                }
+            }
+        } catch (e) {
+            continue;
         }
     }
     return null;
@@ -97,27 +115,56 @@ const getStaffidFromUsername = (staffRows:any, username:any) => {
     return null;
 };
 
-const getMatchRow = (scheduleRows:any, username:any, matchId:any) => {
-    for (let i = 0; i < scheduleRows.length; i++) {
-        const row = scheduleRows[i];
-        const rowData = row.toObject();
-        const id = String(rowData["MatchID"] || "").toUpperCase();
-        const player1 = String(rowData["Player1"] || "");
-        const player2 = String(rowData["Player2"] || "");
+const getMatchRow = (sheet: any, username: any, matchId: any) => {
+    if (!sheet || !username || !matchId) return null;
 
-        const isParticipant = player1 === username || player2 === username;
+    const targetUser = String(username).trim().toLowerCase();
+    const targetMatchId = String(matchId).trim().toUpperCase();
 
-        if (isParticipant && id === matchId) {
-            return {
-                rowInstance: row,
-                id,
-                player1,
-                player2,
-                referee: rowData["Referee"] ? String(rowData["Referee"]) : null,
-                streamer: rowData["Streamer"] ? String(rowData["Streamer"]) : null,
-                hasDate: rowData["Date"] !== undefined && rowData["Date"] !== null && rowData["Date"] !== "",
-                hasTime: rowData["Time"] !== undefined && rowData["Time"] !== null && rowData["Time"] !== "",
-            };
+    const COL_MATCH_ID = 1; 
+    const COL_PLAYER1 = 5;  
+    const COL_PLAYER2 = 8;  
+    const COL_REFEREE = 9;  
+    const COL_STREAMER = 10; 
+    const COL_DATE = 3;     
+    const COL_TIME = 4;     
+
+    for (let i = CONFIG.SHEET_START_ROW - 1; i < CONFIG.SHEET_END_ROW; i++) {
+        try {
+            const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
+            if (!matchIdCell || !matchIdCell.value) continue;
+
+            const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
+
+            if (currentMatchId === targetMatchId) {
+                const p1Cell = sheet.getCell(i, COL_PLAYER1);
+                const p2Cell = sheet.getCell(i, COL_PLAYER2);
+
+                const player1 = p1Cell && p1Cell.value ? String(p1Cell.value).trim() : "";
+                const player2 = p2Cell && p2Cell.value ? String(p2Cell.value).trim() : "";
+
+                const isParticipant = player1.toLowerCase() === targetUser || player2.toLowerCase() === targetUser;
+
+                if (isParticipant) {
+                    const refCell = sheet.getCell(i, COL_REFEREE);
+                    const streamCell = sheet.getCell(i, COL_STREAMER);
+                    const dateCell = sheet.getCell(i, COL_DATE);
+                    const timeCell = sheet.getCell(i, COL_TIME);
+
+                    return {
+                        rowInstance: sheet.getRow(i),
+                        id: currentMatchId,
+                        player1,
+                        player2,
+                        referee: refCell && refCell.value ? String(refCell.value).trim() : null,
+                        streamer: streamCell && streamCell.value ? String(streamCell.value).trim() : null,
+                        hasDate: dateCell && dateCell.value !== undefined && dateCell.value !== null && dateCell.value !== "",
+                        hasTime: timeCell && timeCell.value !== undefined && timeCell.value !== null && timeCell.value !== "",
+                    };
+                }
+            }
+        } catch (e) {
+            continue;
         }
     }
     return null;
@@ -211,7 +258,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
         try {
            await playerSheet.loadCells("A1:F200");
            await staffSheet.loadCells("A1:B100");
-           await sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
+           await sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
         } catch (err) {
             console.error("Error loading sheet rows:", err);
             throw new Error("Failed to load sheet data.");
