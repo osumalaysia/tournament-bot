@@ -131,11 +131,11 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
     for (let i = CONFIG.SHEET_START_ROW - 1; i < CONFIG.SHEET_END_ROW; i++) {
         try {
             const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
-            if (!matchIdCell || !matchIdCell.value) continue;
-            if (i <10 ){
+            if (targetMatchId !== matchIdCell.value) continue;
+
             console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof(matchIdCell.value)} vs target "${targetMatchId}" and type "${typeof(targetMatchId)} which is ${matchIdCell.value === targetMatchId ? "a match" : "not a match"}`);
             console.log(typeof(matchId));
-            }
+            
             const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
 
             if (currentMatchId === targetMatchId) {
