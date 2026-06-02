@@ -347,7 +347,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             try {
                 if (i.customId === "reject") {
                     await sentMessage.edit({
-                        content: `~~${messageText}~~\n:cross mark: <@${opponentId}> rejected!`,
+                        content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`,
                         components: []
                     });
                     collector.stop("rejected");
@@ -370,7 +370,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
 
                     await sheet.saveUpdatedCells();
                     await sentMessage.edit({
-                        content: `~~${messageText}~~\n:check mark: <@${opponentId}> accepted!`,
+                        content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`,
                         components: []
                     });
 
