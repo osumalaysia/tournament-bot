@@ -205,11 +205,11 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
         let scheduleRows, playerRows, staffRows;
         try {
-            [scheduleRows, playerRows, staffRows] = await Promise.all([
-                sheet.getRows({ offset: Math.max(0, CONFIG.SHEET_START_ROW - 2) }),
-                playerSheet.getRows(),
-                staffSheet.getRows()
-            ]);
+           await Promise.all([
+            sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
+            playerSheet.loadCells("A1:F200"),
+            staffSheet.loadCells("A1:B100")
+        ]);
         } catch (err) {
             console.error("Error loading sheet rows:", err);
             throw new Error("Failed to load sheet data.");
