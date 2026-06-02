@@ -63,10 +63,13 @@ const getUsernameFromDiscordId = async (
     const rows = await playerSheet.getRows();
 
     for (const row of rows) {
-        const discordIdCell = row.get("DiscordID")?.toString().trim();
+        const rawDiscordId = row.get("DiscordID");
+        if (!rawDiscordId) continue;
+
+        const discordIdCell = String(rawDiscordId).trim();
 
         if (discordIdCell === discordId.trim()) {
-            return row.get("Username")?.toString() || null;
+            return String(row.get("Username") || "").trim() || null;
         }
     }
     
