@@ -13,16 +13,16 @@ const CONFIG = {
     COOLDOWN_SECONDS: 0,
 };
 const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
-const cooldownMap = new Map<string, number>();
+const cooldownMap = new Map();
 const logChannelId = "1499060711072989184";
 
-const convertFraction = (time: number): number => {
+const convertFraction = (time:any) => {
     const hours = Math.floor(time / 100);
     const minutes = time % 100;
     return (hours + minutes / 60) / 24;
 };
 
-const convertDateFormat = (dateStr: string): number => {
+const convertDateFormat = (dateStr:any) => {
     const parts = dateStr.split("-");
     if (!parts[0] || !parts[1]) throw new Error("Invalid date format");
 
@@ -36,7 +36,7 @@ const convertDateFormat = (dateStr: string): number => {
     return ((newDate.getTime() - timezoneOffset) / (1000 * 60 * 60 * 24)) + 25569;
 };
 
-const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
+const convertDate = (dateMatch:any, timeMatch:any) => {
     const [m, d] = (dateMatch || "").split("-");
     const month = Number(m);
     const day = Number(d);
@@ -56,95 +56,62 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
-const getUsernameFromDiscordId = async (
-    playerSheet:typeof GoogleSpreadsheetWorksheet, 
-    discordId: string
-): Promise<string | null> => {
-    const rows = await playerSheet.getRows();
-
-    for (const row of rows) {
-        const rawDiscordId = row.get("DiscordID");
-        if (!rawDiscordId) continue;
-
-        const discordIdCell = String(rawDiscordId).trim();
-
-        if (discordIdCell === discordId.trim()) {
-            return String(row.get("Username") || "").trim() || null;
-        }
-    }
-    
-    return null;
-};
-const getDiscordIdFromUsername = async (playerSheet:typeof GoogleSpreadsheetWorksheet,username: string): Promise<string | null> => {
-    const range = `A1:A200`; 
-    await playerSheet.loadCells(range);
-
-    for (let r = 1; r <= 200; r++) {
-        const usernameCell = playerSheet.getCellByA1(`A${r}`).value;
-        if (usernameCell?.toString() === username) {
-            
-            await playerSheet.loadCells(`F${r}:F${r}`);
-            return playerSheet.getCellByA1(`F${r}`).value?.toString() || null;
-        }
-    }
-    return null;
-}
-
-const getStaffidFromUsername = async (staffSheet: any, username: string): Promise<string | null> => {
-    await staffSheet.loadCells('A1:B100');
-
-    for (let r = 1; r <= 100; r++) {
-        const usernameCell = staffSheet.getCellByA1(`A${r}`).value;
-        if (usernameCell?.toString() === username) {
-            return staffSheet.getCellByA1(`B${r}`).value?.toString() || null;
-        }
-    }
-    return null;
-};
-
-const toDiscordTimestamp = (date: Date): string => {
+const toDiscordTimestamp = (date:any) => {
     const unix = Math.floor(date.getTime() / 1000) - 8 * 60 * 60;
     return `<t:${unix}:f>`;
 };
 
-const getMatchRow = async (sheet: typeof GoogleSpreadsheetWorksheet, username: string, matchId: string) => {
-    // Load all necessary columns at once
-    await sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
 
-    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
-        const id = sheet.getCellByA1(`B${row}`).value;
-        const player1 = sheet.getCellByA1(`F${row}`).value?.toString();
-        const player2 = sheet.getCellByA1(`I${row}`).value?.toString();
-        const dateCell = sheet.getCellByA1(`D${row}`).value;
-        const timeCell = sheet.getCellByA1(`E${row}`).value;
+const getUsernameFromDiscordId = (playerRows:any, discordId:any) => {
+    for (const row of playerRows) {
+        const rowData = row.toObject();
+        if (String(rowData["DiscordID"] || "").trim() === discordId.trim()) {
+            return String(rowData["Username"] || "").trim() || null;
+        }
+    }
+    return null;
+};
+
+const getDiscordIdFromUsername = (playerRows:any, username:any) => {
+    for (const row of playerRows) {
+        const rowData = row.toObject();
+        if (String(rowData["Username"] || "").trim() === username.trim()) {
+            return String(rowData["DiscordID"] || "").trim() || null;
+        }
+    }
+    return null;
+};
+
+const getStaffidFromUsername = (staffRows:any, username:any) => {
+    for (const row of staffRows) {
+        const rowData = row.toObject();
+        if (String(rowData["Username"] || "").trim() === username.trim()) {
+            return String(rowData["StaffID"] || "").trim() || null;
+        }
+    }
+    return null;
+};
+
+const getMatchRow = (scheduleRows:any, username:any, matchId:any) => {
+    for (let i = 0; i < scheduleRows.length; i++) {
+        const row = scheduleRows[i];
+        const rowData = row.toObject();
+        const id = String(rowData["MatchID"] || "").toUpperCase();
+        const player1 = String(rowData["Player1"] || "");
+        const player2 = String(rowData["Player2"] || "");
 
         const isParticipant = player1 === username || player2 === username;
 
         if (isParticipant && id === matchId) {
             return {
-                row,
+                rowInstance: row,
                 id,
                 player1,
                 player2,
-                hasDate: typeof dateCell === "number",
-                hasTime: typeof timeCell === "number",
-            };
-        }
-    }
-    return null;
-};
-
-const getStaffNames = async (sheet: typeof GoogleSpreadsheetWorksheet, matchId: string) => {
-    await sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
-
-    for (let row = CONFIG.SHEET_START_ROW; row <= CONFIG.SHEET_END_ROW; row++) {
-        const id = sheet.getCellByA1(`B${row}`).value;
-        if (id === matchId) {
-            const refereeCell = sheet.getCellByA1(`J${row}`).value;
-            const streamerCell = sheet.getCellByA1(`K${row}`).value;
-            return {
-                referee: refereeCell ? refereeCell.toString() : null,
-                streamer: streamerCell ? streamerCell.toString() : null
+                referee: rowData["Referee"] ? String(rowData["Referee"]) : null,
+                streamer: rowData["Streamer"] ? String(rowData["Streamer"]) : null,
+                hasDate: rowData["Date"] !== undefined && rowData["Date"] !== null && rowData["Date"] !== "",
+                hasTime: rowData["Time"] !== undefined && rowData["Time"] !== null && rowData["Time"] !== "",
             };
         }
     }
@@ -154,17 +121,17 @@ const getStaffNames = async (sheet: typeof GoogleSpreadsheetWorksheet, matchId: 
 export const data = new SlashCommandBuilder()
     .setName("reschedule")
     .setDescription("Reschedule a match")
-    .addStringOption((opt: any) =>
+    .addStringOption((opt:any) =>
         opt.setName("matchid")
             .setDescription("Match ID from the schedule sheet")
             .setRequired(true)
     )
-    .addStringOption((opt: any) =>
+    .addStringOption((opt:any) =>
         opt.setName("newtime")
             .setDescription("Time 24h format (e.g. 1900)")
             .setRequired(true)
     )
-    .addStringOption((opt: any) =>
+    .addStringOption((opt:any) =>
         opt.setName("newmonth")
             .setDescription("Month (e.g. 08)")
             .setRequired(true)
@@ -174,316 +141,164 @@ export const data = new SlashCommandBuilder()
                 { name: "Aug", value: "08" }
             ])
     )
-    .addStringOption((opt: any) =>
+    .addStringOption((opt:any) =>
         opt.setName("newday")
             .setDescription("Day (e.g. 15)")
             .setRequired(true)
     );
 
-export async function execute(interaction: typeof ChatInputCommandInteraction) {
+export async function execute(interaction:any) {
     const userId = interaction.user.id;
     const now = Date.now();
 
-    if (isOnCooldown(userId, now)) {
-        const timeLeft = getCooldownRemaining(userId, now);
-        await handleCooldownResponse(interaction, timeLeft);
-        return;
+    if (cooldownMap.has(userId)) {
+        const expirationTime = cooldownMap.get(userId);
+        if (now < expirationTime) {
+            const timeLeft = Math.round((expirationTime - now) / 1000);
+            await interaction.reply({ 
+                content: `Please wait ${timeLeft} more second(s) before using this command again.`, 
+                flags: [MessageFlags.Ephemeral] 
+            });
+            return;
+        }
     }
 
-    cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
     await interaction.deferReply();
+    cooldownMap.set(userId, now + CONFIG.COOLDOWN_SECONDS * 1000);
 
-    try {
-        const {
-            matchId,
-            newTimeStr,
-            newMonthStr,
-            newDayStr
-        } = extractInteractionOptions(interaction);
+    const matchId = interaction.options.getString("matchid", true).toUpperCase();
+    const newTimeStr = interaction.options.getString("newtime", true);
+    const newMonthStr = interaction.options.getString("newmonth", true);
+    const newDayStr = interaction.options.getString("newday", true);
+    const newDateStr = `${newMonthStr}-${newDayStr}`;
+    const dateObj = convertDate(newDateStr, Number(newTimeStr));
 
-        const newDateStr = `${newMonthStr}-${newDayStr}`;
-        const dateObj = convertDate(newDateStr, newTimeStr);
-
-        if (!dateObj) {
-            throw new Error("Invalid date/time format.");
-        }
-
-        validateDateRange(dateObj, "06-02", "06-15", "June 2", "June 15");
-
-        const [doc, playerSheet, sheet] = await loadSheets();
-
-        const username = await getUsernameFromDiscordId(playerSheet, userId);        
-        if (!username) {
-            throw new Error("Could not find your Discord ID in the registered player list.");
-        }
-
-        const match = await getMatchRow(sheet, username, matchId);
-        if (!match || !match.hasTime || !match.hasDate) {
-            throw new Error(`Match ID **${matchId}** not found, or you are not a player in it.`);
-        }
-
-       const opponentUsername = username === match.player1 ? match.player2 : match.player1;
-        const opponentId = await getDiscordIdFromUsername(playerSheet, opponentUsername);
-        if (!opponentId) {
-            throw new Error("Could not find opponent Discord ID.");
-        }
-        const discordTs = toDiscordTimestamp(dateObj);
-        const messageContent = formatRescheduleMessage(matchId, opponentId, interaction.user.id, discordTs);
-        const actionRow = createActionRow();
-
-        const sentMessage = await interaction.editReply({
-            content: messageContent,
-            components: [actionRow]
-        });
-
-        await handleRescheduleResponse(
-            sentMessage,
-            opponentId,
-            match,
-            newTimeStr,
-            newDateStr,
-            discordTs,
-            sheet,
-            playerSheet
-        );
-
-    } catch (error) {
-        await handleInteractionError(interaction, error);
-    }
-}
-
-function isOnCooldown(userId: string, now: number): boolean {
-    return cooldownMap.has(userId) && now < cooldownMap.get(userId)!;
-}
-
-function getCooldownRemaining(userId: string, now: number): number {
-    return Math.round((cooldownMap.get(userId)! - now) / 1000);
-}
-
-async function handleCooldownResponse(interaction: any, timeLeft: number) {
-    await interaction.reply({
-        content: `Please wait ${timeLeft} more second(s) before using this command again.`,
-        flags: [MessageFlags.Ephemeral]
-    });
-}
-
-function extractInteractionOptions(interaction: any) {
-    return {
-        matchId: interaction.options.getString("matchid").toUpperCase(),
-        newTimeStr: interaction.options.getString("newtime"),
-        newMonthStr: interaction.options.getString("newmonth"),
-        newDayStr: interaction.options.getString("newday")
-    };
-}
-
-function validateDateRange(dateObj: Date, startDate: string, endDate: string, displayStart: string, displayEnd: string) {
+    if (!dateObj) return interaction.editReply({ content: "Invalid date/time format." });
     const currentYear = new Date().getFullYear();
-
-    const startDateObj = new Date(currentYear,5, 2, 0, 0, 0);
-    const endDateObj = new Date(currentYear, 5 , 15, 23, 59, 59);
-
-    if (dateObj < startDateObj || dateObj > endDateObj) {
-        throw new Error(`You can only reschedule matches to dates between **${displayStart}** and **${displayEnd}**.`);
+    const allowedStart = new Date(currentYear, 5, 2, 0, 0, 0); 
+    const allowedEnd = new Date(currentYear, 5, 15, 23, 59, 59);
+    if (dateObj < allowedStart || dateObj > allowedEnd) {
+        return interaction.editReply({ 
+            content: "You can only reschedule matches to dates between **June 2** and **June 15**." 
+        });
     }
-}
 
-async function loadSheets() {
     const doc = await getDoc(bracketMatchSheetId);
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
+    const staffSheet = doc.sheetsByTitle[CONFIG.STAFF_SHEET]; // Instantiated directly from global config string safely
 
-    if (!sheet) throw new Error(`Sheet '${CONFIG.SHEET_TITLE}' not found.`);
-    if (!playerSheet) throw new Error(`Sheet '${CONFIG.PLAYER_SHEET}' not found.`);
+    if (!sheet) return interaction.editReply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.` });
+    if (!playerSheet) return interaction.editReply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.` });
+    if (!staffSheet) return interaction.editReply({ content: `Sheet '${CONFIG.STAFF_SHEET}' not found.` });
 
-    await Promise.all([
-        sheet.loadCells(`B${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
-        playerSheet.loadCells(`A1:F150`)
+    // 🚀 EXTREME SPEED INCREASE HERE: Parallel row execution caching instead of partial cells load
+    const [scheduleRows, playerRows, staffRows] = await Promise.all([
+        sheet.getRows(),
+        playerSheet.getRows(),
+        staffSheet.getRows()
     ]);
 
-    return [doc, playerSheet, sheet];
-}
+    // Fast memory lookups
+    const username = getUsernameFromDiscordId(playerRows, interaction.user.id);
+    if (!username) {
+        return interaction.editReply({ content: "Error: Could not find your Discord ID in the registered player list." });
+    }
 
-function formatRescheduleMessage(matchId: string, opponentId: string, userId: string, timestamp: string): string {
-    return `Hey <@${opponentId}>! <@${userId}> wants to reschedule **${matchId}** to ${timestamp}`;
-}
+    const match = getMatchRow(scheduleRows, username, matchId);
+    if (!match || !match.hasTime || !match.hasDate) {
+        return interaction.editReply({ content: `Match ID **${matchId}** not found, or you are not a player in it.` });
+    }
 
-function createActionRow() {
-    return new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId("accept")
-                .setLabel("Accept")
-                .setStyle(ButtonStyle.Success),
-            new ButtonBuilder()
-                .setCustomId("reject")
-                .setLabel("Reject")
-                .setStyle(ButtonStyle.Danger)
-        );
-}
+    const opponentUsername = username === match.player1 ? match.player2 : match.player1;
+    const opponentId = opponentUsername ? getDiscordIdFromUsername(playerRows, opponentUsername) : null;
 
-async function handleRescheduleResponse(
-    message: any,
-    opponentId: string,
-    match: any,
-    newTimeStr: string,
-    newDateStr: string,
-    discordTs: string,
-    sheet: any,
-    playerSheet: any
-) {
-    const collector = message.createMessageComponentCollector({
+    if (!opponentId) {
+        return interaction.editReply({ content: `Could not find opponent Discord ID.` });
+    }
+
+    const discordTs = toDiscordTimestamp(dateObj);
+    const messageText = `Hey <@${opponentId}>! <@${interaction.user.id}> wants to reschedule **${matchId}** to ${discordTs}`;
+
+    const buttons = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success),
+        new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger)
+    );
+
+    const sentMessage = await interaction.editReply({
+        content: messageText,
+        components: [buttons]
+    });
+
+    const collector = sentMessage.createMessageComponentCollector({
         componentType: ComponentType.Button,
         time: 5 * 60 * 1000
     });
 
-    collector.on("collect", async (i: any) => {
-        try {
-            if (i.user.id !== opponentId) {
-                await i.reply({
-                    content: "You are not authorized to respond to this request.",
-                    flags: [MessageFlags.Ephemeral]
-                });
-                return;
-            }
-
-            await i.deferUpdate();
-
-            if (i.customId === "reject") {
-                await updateMessage(message, `~~${message.content}~~\n:cross mark: <@${opponentId}> rejected!`);
-                collector.stop("rejected");
-                return;
-            }
-
-            if (i.customId === "accept") {
-                await updateMatchSchedule(
-                    sheet,
-                    match.row,
-                    newTimeStr,
-                    newDateStr
-                );
-
-                await updateMessage(
-                    message,
-                    `~~${message.content}~~\n:check mark: <@${opponentId}> accepted!`
-                );
-
-                await logReschedule(
-                    playerSheet,
-                    sheet,
-                    message.client,
-                    match.id,
-                    discordTs
-                );
-
-                collector.stop("accepted");
-            }
-        } catch (error) {
-            console.error("Error in collector:", error);
-            await i.followUp({
-                content: "An error occurred while processing your response.",
-                flags: [MessageFlags.Ephemeral]
+    collector.on("collect", async (i:any) => {
+        if (i.user.id !== opponentId) {
+            await i.reply({ 
+                content: "You are not authorized to respond to this request.", 
+                flags: [MessageFlags.Ephemeral] 
             });
+            return;
+        }
+
+        await i.deferUpdate();
+
+        if (i.customId === "reject") {
+            await sentMessage.edit({ content: `~~${messageText}~~\n❌ <@${opponentId}> rejected!`, components: [] });
+            return collector.stop("rejected");
+        }
+
+        if (i.customId === "accept") {
+            try {
+                // High-speed write operation utilizing the existing row reference directly
+                const rowToUpdate = match.rowInstance;
+                rowToUpdate.set('Time', convertFraction(Number(newTimeStr)));
+                rowToUpdate.set('Date', convertDateFormat(newDateStr));
+                await rowToUpdate.save(); // Directly persists change globally in 1 short sync call
+
+                await sentMessage.edit({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
+                
+                const logChannel = await interaction.client.channels.fetch(logChannelId);
+                const embed = new EmbedBuilder()
+                    .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
+                
+                if (logChannel && 'send' in logChannel) {
+                    const refereeid = getStaffidFromUsername(staffRows, match.referee || "") || "unknown";
+                    const staffid = getStaffidFromUsername(staffRows, match.streamer || "") || "unknown";
+                    
+                    const pings = [];
+                    if (refereeid && refereeid !== "unknown") pings.push(`<@${refereeid}>`);
+                    if (staffid && staffid !== "unknown") pings.push(`<@${staffid}>`);
+                    const contentString = pings.length > 0 ? pings.join(" ") : undefined;
+                    
+                    await logChannel.send({
+                        content: contentString,
+                        embeds: [embed]
+                    });
+                }
+                return collector.stop("accepted");
+            } catch (err) {
+                console.error(err);
+                await i.followUp({ 
+                    content: "Failed to update sheet.", 
+                    flags: [MessageFlags.Ephemeral] 
+                });
+            }
         }
     });
 
-    collector.on("end", async (_: any, reason: string) => {
-        if (reason === "time") {
-            const disabledRow = createDisabledActionRow();
-            await updateMessage(
-                message,
-                `~~${message.content}~~\n:hourglass flowing: Reschedule request timed out`,
-                [disabledRow]
+    collector.on("end", async (_:any, reason:string) => {
+        if (reason !== "accepted" && reason !== "rejected") {
+            const disabledRow = new ActionRowBuilder().addComponents(
+                new ButtonBuilder().setCustomId("accept").setLabel("Accept").setStyle(ButtonStyle.Success).setDisabled(true),
+                new ButtonBuilder().setCustomId("reject").setLabel("Reject").setStyle(ButtonStyle.Danger).setDisabled(true)
             );
+            await sentMessage.edit({ content: `~~${messageText}~~\n⏳ Reschedule request timed out`, components: [disabledRow] }).catch(() => { });
         }
     });
-}
-
-async function updateMessage(message: any, content: string, components: any[] = []) {
-    try {
-        await message.edit({ content, components });
-    } catch (error) {
-        console.error("Failed to update message:", error);
-    }
-}
-
-async function updateMatchSchedule(
-    sheet: any,
-    row: number,
-    newTimeStr: string,
-    newDateStr: string
-) {
-    sheet.getCellByA1(`E${row}`).value = convertFraction(Number(newTimeStr));
-    sheet.getCellByA1(`D${row}`).value = convertDateFormat(newDateStr);
-    await sheet.saveUpdatedCells();
-}
-
-function createDisabledActionRow() {
-    return new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId("accept")
-                .setLabel("Accept")
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(true),
-            new ButtonBuilder()
-                .setCustomId("reject")
-                .setLabel("Reject")
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true)
-        );
-}
-
-async function logReschedule(
-    playerSheet: any,
-    sheet: any,
-    client: any,
-    matchId: string,
-    discordTs: string
-) {
-    try {
-        const logChannel = await client.channels.fetch(logChannelId);
-        if (!logChannel || !logChannel.send) return;
-
-        const staffNames = await getStaffNames(sheet, matchId);
-        const pings = [];
-
-        if (staffNames?.referee) {
-            const refereeId = await getStaffidFromUsername(playerSheet, staffNames.referee);
-            if (refereeId) pings.push(`<@${refereeId}>`);
-        }
-
-        if (staffNames?.streamer) {
-            const streamerId = await getStaffidFromUsername(playerSheet, staffNames.streamer);
-            if (streamerId) pings.push(`<@${streamerId}>`);
-        }
-
-        const embed = new EmbedBuilder()
-            .setDescription(`Match **${matchId}** has been rescheduled to ${discordTs}`);
-
-        await logChannel.send({
-            content: pings.length > 0 ? pings.join(" ") : undefined,
-            embeds: [embed]
-        });
-    } catch (error) {
-        console.error("Error logging reschedule:", error);
-    }
-}
-
-async function handleInteractionError(interaction: any, error: unknown) {
-    console.error("Error in reschedule command:", error);
-
-    const errorMessage = error instanceof Error
-        ? `Error: ${error.message}`
-        : "An unexpected error occurred.";
-
-    if (interaction.deferred || interaction.replied) {
-        await interaction.editReply({ content: errorMessage });
-    } else {
-        await interaction.reply({
-            content: errorMessage,
-            flags: [MessageFlags.Ephemeral]
-        });
-    }
 }
 
 module.exports = { data, execute };
