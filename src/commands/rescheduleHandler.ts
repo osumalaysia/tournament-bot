@@ -207,13 +207,10 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("One or more required sheets not found.");
         }
 
-        let scheduleRows: any, staffRows: any;
         try {
            await playerSheet.loadCells("A1:F200");
-           [scheduleRows, staffRows] = await Promise.all([
-               sheet.getRows({ offset: CONFIG.SHEET_START_ROW - 2 }),
-               staffSheet.getRows()
-           ]);
+           await staffSheet.loadCells("A1:B100");
+           await sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
         } catch (err) {
             console.error("Error loading sheet rows:", err);
             throw new Error("Failed to load sheet data.");
@@ -224,7 +221,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("Could not find your Discord ID in the registered player list.");
         }
 
-        const match = getMatchRow(scheduleRows, username, matchId);
+        const match = getMatchRow(sheet, username, matchId);
         if (!match) {
             throw new Error(`Match ID **${matchId}** not found.`);
         }
@@ -329,11 +326,11 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
                             const pings = [];
                             if (match.referee) {
-                                const refereeId = getStaffidFromUsername(staffRows, match.referee);
+                                const refereeId = getStaffidFromUsername(staffSheet, match.referee);
                                 if (refereeId && refereeId !== "unknown") pings.push(`<@${refereeId}>`);
                             }
                             if (match.streamer) {
-                                const staffId = getStaffidFromUsername(staffRows, match.streamer);
+                                const staffId = getStaffidFromUsername(staffSheet, match.streamer);
                                 if (staffId && staffId !== "unknown") pings.push(`<@${staffId}>`);
                             }
 
