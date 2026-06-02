@@ -65,9 +65,15 @@ const toDiscordTimestamp = (date:any) => {
 const getUsernameFromDiscordId = (PLAYER_SHEET: any, discordId: any) => {
     if (!PLAYER_SHEET || !discordId) return null;
     const targetId = String(discordId).trim();
+    console.log(`🔎 DEBUG: Looking for Discord ID: "${targetId}" (Length: ${targetId.length})`);
         for (let i = 0; i < 200; i++) {
         try {
             const discordIdCell = PLAYER_SHEET.getCell(i, 5); 
+
+            if (i < 10 || (discordIdCell && discordIdCell.value)) {
+                console.log(`Row ${i} | Raw Value: ${discordIdCell?.value} | Type: ${typeof discordIdCell?.value}`);
+                console.log(discordId)
+            }
             if (discordIdCell && discordIdCell.value !== null && discordIdCell.value !== undefined) {
                 const sheetValue = String(discordIdCell.value).trim();
                 
