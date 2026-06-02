@@ -215,10 +215,6 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("Failed to load sheet data.");
         }
 
-        if (!scheduleRows || !playerRows || !staffRows) {
-            throw new Error("Failed to load sheet rows.");
-        }
-
         const username = getUsernameFromDiscordId(playerRows, userId);
         if (!username) {
             throw new Error("Could not find your Discord ID in the registered player list.");
