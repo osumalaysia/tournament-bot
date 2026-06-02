@@ -2,7 +2,7 @@ const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
 
 const TOURNAMENT_NAME = "o!M4T 2026";
 const EMOJI_GUILD_ID = "905398607895752735";
-const TARGET_CHANNEL_ID = "1499060711072989184";
+const TARGET_CHANNEL_ID = "1457807376546533386";
 const ROLE_ID = "1457806106058297518";
 
 async function makeEmoji(emojiGuild: any, userId: any, name = "profile") {
@@ -29,6 +29,12 @@ export const data = new SlashCommandBuilder()
     )
     .addStringOption((p2: any) =>
         p2.setName("player2").setDescription("Player 2").setRequired(true)
+    )
+    .addStringOption((p1seed: any) =>
+        p1seed.setName("player1seed").setDescription("Player 1 Seed").setRequired(true)
+    )
+    .addStringOption((p2seed: any) =>
+        p2seed.setName("player2seed").setDescription("Player 2 Seed").setRequired(true)
     )
     .addStringOption((p1Id: any) =>
         p1Id.setName("player1id").setDescription("Player 1 ID").setRequired(true)
@@ -91,6 +97,8 @@ export async function execute(interaction: any) {
         stages: interaction.options.getString("stages"),
         player1: interaction.options.getString("player1"),
         player2: interaction.options.getString("player2"),
+        player1seed: interaction.options.getString("player1seed"),
+        player2seed: interaction.options.getString("player2seed"),
         score1: interaction.options.getString("score1"),
         score2: interaction.options.getString("score2"),
         mplink: interaction.options.getString("mplink"),
@@ -107,7 +115,7 @@ export async function execute(interaction: any) {
 
     const resultEmbed = new EmbedBuilder()
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${p1Profile} ${data.player1} | ${data.score1} - ${data.score2} | ${data.player2} ${p2Profile} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
+        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${data.player1} #${data.player1seed} ${p1Profile} | ${data.score1} - ${data.score2} | ${p2Profile} #${data.player2seed} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
         .addFields(
             { name: "MP LINK", value: `https://osu.ppy.sh/mp/${data.mplink}`, inline: false },
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
