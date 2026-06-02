@@ -16,13 +16,13 @@ const bracketMatchSheetId = "1G1TN3dSdprXAkkttmQAce2o-SRCFil_PeGo9iPVGTy4";
 const cooldownMap = new Map();
 const logChannelId = "1499060711072989184";
 
-const convertFraction = (time:any) => {
+const convertFraction = (time: any) => {
     const hours = Math.floor(time / 100);
     const minutes = time % 100;
     return (hours + minutes / 60) / 24;
 };
 
-const convertDateFormat = (dateStr:any) => {
+const convertDateFormat = (dateStr: any) => {
     const parts = dateStr.split("-");
     if (!parts[0] || !parts[1]) throw new Error("Invalid date format");
 
@@ -36,7 +36,7 @@ const convertDateFormat = (dateStr:any) => {
     return ((newDate.getTime() - timezoneOffset) / (1000 * 60 * 60 * 24)) + 25569;
 };
 
-const convertDate = (dateMatch:any, timeMatch:any) => {
+const convertDate = (dateMatch: any, timeMatch: any) => {
     const [m, d] = (dateMatch || "").split("-");
     const month = Number(m);
     const day = Number(d);
@@ -56,7 +56,7 @@ const convertDate = (dateMatch:any, timeMatch:any) => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
-const toDiscordTimestamp = (date:any) => {
+const toDiscordTimestamp = (date: any) => {
     const unix = Math.floor(date.getTime() / 1000) - 8 * 60 * 60;
     return `<t:${unix}:f>`;
 };
@@ -65,15 +65,15 @@ const toDiscordTimestamp = (date:any) => {
 const getUsernameFromDiscordId = (PLAYER_SHEET: any, discordId: any) => {
     if (!PLAYER_SHEET || !discordId) return null;
     const targetId = String(discordId).trim();
-        for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 200; i++) {
         try {
-            const discordIdCell = PLAYER_SHEET.getCell(i, 5); 
+            const discordIdCell = PLAYER_SHEET.getCell(i, 5);
 
             if (discordIdCell && discordIdCell.value !== null && discordIdCell.value !== undefined) {
                 const sheetValue = String(discordIdCell.value).trim();
-                
+
                 if (sheetValue === targetId) {
-                    const usernameCell = PLAYER_SHEET.getCell(i, 0); 
+                    const usernameCell = PLAYER_SHEET.getCell(i, 0);
                     return usernameCell && usernameCell.value ? String(usernameCell.value).trim() : null;
                 }
             }
@@ -90,12 +90,12 @@ const getDiscordIdFromUsername = (PLAYER_SHEET: any, username: any) => {
 
     for (let i = 0; i < 200; i++) {
         try {
-            const usernameCell = PLAYER_SHEET.getCell(i, 0); 
+            const usernameCell = PLAYER_SHEET.getCell(i, 0);
             if (usernameCell && usernameCell.value) {
                 const sheetUser = String(usernameCell.value).trim().toLowerCase();
-                
+
                 if (sheetUser === targetUser) {
-                    const discordIdCell = PLAYER_SHEET.getCell(i, 5); 
+                    const discordIdCell = PLAYER_SHEET.getCell(i, 5);
                     return discordIdCell && discordIdCell.value ? String(discordIdCell.value).trim() : null;
                 }
             }
@@ -105,8 +105,8 @@ const getDiscordIdFromUsername = (PLAYER_SHEET: any, username: any) => {
     }
     return null;
 };
-    
-const getStaffidFromUsername = (staffRows:any, username:any) => {
+
+const getStaffidFromUsername = (staffRows: any, username: any) => {
     for (const row of staffRows) {
         const rowData = row.toObject();
         if (String(rowData["Username"] || "").trim() === username.trim()) {
@@ -120,22 +120,22 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
     if (!sheet || !username || !matchId) return null;
     const targetUser = String(username).trim().toLowerCase();
     const targetMatchId = String(matchId).trim().toUpperCase();
-    const COL_MATCH_ID = 1; 
-    const COL_PLAYER1 = 5;  
-    const COL_PLAYER2 = 8;  
-    const COL_REFEREE = 9;  
-    const COL_STREAMER = 10; 
-    const COL_DATE = 3;     
-    const COL_TIME = 4;     
+    const COL_MATCH_ID = 1;
+    const COL_PLAYER1 = 5;
+    const COL_PLAYER2 = 8;
+    const COL_REFEREE = 9;
+    const COL_STREAMER = 10;
+    const COL_DATE = 3;
+    const COL_TIME = 4;
 
     for (let i = CONFIG.SHEET_START_ROW - 1; i < CONFIG.SHEET_END_ROW; i++) {
         try {
             const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
             if (targetMatchId !== matchIdCell.value) continue;
 
-            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof(matchIdCell.value)} vs target "${targetMatchId}" and type "${typeof(targetMatchId)} which is ${matchIdCell.value === targetMatchId ? "a match" : "not a match"}`);
-            console.log(typeof(matchId));
-            
+            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof (matchIdCell.value)} vs target "${targetMatchId}" and type "${typeof (targetMatchId)} which is ${matchIdCell.value === targetMatchId ? "a match" : "not a match"}`);
+            console.log(typeof (matchId));
+
             const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
 
             if (currentMatchId === targetMatchId) {
@@ -144,12 +144,12 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
 
                 const player1 = p1Cell && p1Cell.value ? String(p1Cell.value).trim() : "";
                 const player2 = p2Cell && p2Cell.value ? String(p2Cell.value).trim() : "";
-                   console.log(`=== PARTICIPANT DIAGNOSTIC FOR ROW ${i + 1} ===`);
-                   console.log(`Sheet Player 1: "${player1.toLowerCase()}"`);
-                  console.log(`Sheet Player 2: "${player2.toLowerCase()}"`);
-                  console.log(`Your Registered Username: "${targetUser}"`);
-                  console.log(`=============================================`);
-                  console.log(`Checking if user is a participant: ${player1.toLowerCase() === targetUser} || ${player2.toLowerCase() === targetUser}`);
+                console.log(`=== PARTICIPANT DIAGNOSTIC FOR ROW ${i + 1} ===`);
+                console.log(`Sheet Player 1: "${player1.toLowerCase()}"`);
+                console.log(`Sheet Player 2: "${player2.toLowerCase()}"`);
+                console.log(`Your Registered Username: "${targetUser}"`);
+                console.log(`=============================================`);
+                console.log(`Checking if user is a participant: ${player1.toLowerCase() === targetUser} || ${player2.toLowerCase() === targetUser}`);
                 const isParticipant = player1.toLowerCase() === targetUser || player2.toLowerCase() === targetUser;
 
                 if (isParticipant) {
@@ -158,8 +158,12 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
                     const dateCell = sheet.getCell(i, COL_DATE);
                     const timeCell = sheet.getCell(i, COL_TIME);
 
+                    console.log(`Referee: "${refCell && refCell.value ? String(refCell.value).trim() : "N/A"}"`);
+                    console.log(`Streamer: "${streamCell && streamCell.value ? String(streamCell.value).trim() : "N/A"}"`);
+                    console.log(`Date Cell Value: "${dateCell && dateCell.value !== undefined && dateCell.value !== null ? String(dateCell.value).trim() : "N/A"}"`);
+                    console.log(`Time Cell Value: "${timeCell && timeCell.value !== undefined && timeCell.value !== null ? String(timeCell.value).trim() : "N/A"}"`);
                     return {
-                        rowInstance: sheet.getRow(i),
+                        rowIndex: i,
                         id: currentMatchId,
                         player1,
                         player2,
@@ -180,17 +184,17 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
 export const data = new SlashCommandBuilder()
     .setName("reschedule")
     .setDescription("Reschedule a match")
-    .addStringOption((opt:any) =>
+    .addStringOption((opt: any) =>
         opt.setName("matchid")
             .setDescription("Match ID from the schedule sheet")
             .setRequired(true)
     )
-    .addStringOption((opt:any) =>
+    .addStringOption((opt: any) =>
         opt.setName("newtime")
             .setDescription("Time 24h format (e.g. 1900)")
             .setRequired(true)
     )
-    .addStringOption((opt:any) =>
+    .addStringOption((opt: any) =>
         opt.setName("newmonth")
             .setDescription("Month (e.g. 08)")
             .setRequired(true)
@@ -200,13 +204,13 @@ export const data = new SlashCommandBuilder()
                 { name: "Aug", value: "08" }
             ])
     )
-    .addStringOption((opt:any) =>
+    .addStringOption((opt: any) =>
         opt.setName("newday")
             .setDescription("Day (e.g. 15)")
             .setRequired(true)
     );
 
-export async function execute(interaction:typeof ChatInputCommandInteraction) {
+export async function execute(interaction: typeof ChatInputCommandInteraction) {
     const userId = interaction.user.id;
     const now = Date.now();
 
@@ -263,9 +267,9 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
         }
 
         try {
-           await playerSheet.loadCells("A1:F200");
-           await staffSheet.loadCells("A1:B100");
-           await sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
+            await playerSheet.loadCells("A1:F200");
+            await staffSheet.loadCells("A1:B100");
+            await sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
         } catch (err) {
             console.error("Error loading sheet rows:", err);
             throw new Error("Failed to load sheet data.");
@@ -328,7 +332,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             }
         }, 5 * 60 * 1000);
 
-        collector.on("collect", async (i:any) => {
+        collector.on("collect", async (i: any) => {
             if (i.user.id !== opponentId) {
                 await i.reply({
                     content: "You are not authorized to respond to this request.",
@@ -350,12 +354,6 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
                 }
 
                 if (i.customId === "accept") {
-                    const rowToUpdate = match.rowInstance;
-
-                    if (!rowToUpdate || typeof rowToUpdate.set !== 'function' || typeof rowToUpdate.save !== 'function') {
-                        throw new Error("Invalid row object for updating.");
-                    }
-
                     const newTimeValue = convertFraction(Number(newTimeStr));
                     const newDateValue = convertDateFormat(newDateStr);
 
@@ -363,11 +361,13 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
                         throw new Error("Invalid time or date value calculated.");
                     }
 
-                    rowToUpdate.set('Time', newTimeValue);
-                    rowToUpdate.set('Date', newDateValue);
+                    const dateCellToUpdate = sheet.getCell(match.rowIndex, 3);
+                    const timeCellToUpdate = sheet.getCell(match.rowIndex, 4);
 
-                    await rowToUpdate.save();
+                    dateCellToUpdate.value = newDateValue;
+                    timeCellToUpdate.value = newTimeValue;
 
+                    await sheet.saveUpdatedCells();
                     await sentMessage.edit({
                         content: `~~${messageText}~~\n:check mark: <@${opponentId}> accepted!`,
                         components: []
@@ -400,7 +400,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
                     collector.stop("accepted");
                 }
-            } catch (error:any) {
+            } catch (error: any) {
                 console.error("Error processing interaction:", error);
                 await i.followUp({
                     content: `An error occurred: ${error.message}`,
@@ -409,7 +409,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             }
         });
 
-        collector.on("end", async (collected:any, reason:string) => {
+        collector.on("end", async (collected: any, reason: string) => {
             clearTimeout(timeout);
             interactionEnded = true;
 
@@ -429,7 +429,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             }
         });
 
-    } catch (error:any) {
+    } catch (error: any) {
         console.error("Error in reschedule command:", error);
 
         if (interaction.deferred) {
