@@ -56,20 +56,22 @@ const convertDate = (dateMatch: string, timeMatch: number): Date | null => {
     return !isNaN(date.getTime()) ? date : null;
 };
 
-const getUsernameFromDiscordId = async (playerSheet:typeof GoogleSpreadsheetWorksheet,discordId: string): Promise<string | null> => {
-    const range = `F1:F200`;
-    await playerSheet.loadCells(range);
+const getUsernameFromDiscordId = async (
+    playerSheet:typeof GoogleSpreadsheetWorksheet, 
+    discordId: string
+): Promise<string | null> => {
+    const rows = await playerSheet.getRows();
 
-    for (let r = 1; r <= 200; r++) {
-        const discordIdCell = playerSheet.getCellByA1(`F${r}`).value;
-        if (discordIdCell?.toString().trim() === discordId) {
-            await playerSheet.loadCells(`A${r}:A${r}`);
-            return playerSheet.getCellByA1(`A${r}`).value?.toString() || null;
+    for (const row of rows) {
+        const discordIdCell = row.get("DiscordID")?.toString().trim();
+
+        if (discordIdCell === discordId.trim()) {
+            return row.get("Username")?.toString() || null;
         }
     }
+    
     return null;
-}
-
+};
 const getDiscordIdFromUsername = async (playerSheet:typeof GoogleSpreadsheetWorksheet,username: string): Promise<string | null> => {
     const range = `A1:A200`; 
     await playerSheet.loadCells(range);
