@@ -120,7 +120,6 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
     if (!sheet || !username || !matchId) return null;
     const targetUser = String(username).trim().toLowerCase();
     const targetMatchId = String(matchId).trim().toUpperCase();
-
     const COL_MATCH_ID = 1; 
     const COL_PLAYER1 = 5;  
     const COL_PLAYER2 = 8;  
@@ -134,7 +133,7 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
             const matchIdCell = sheet.getCell(i, COL_MATCH_ID);
             if (!matchIdCell || !matchIdCell.value) continue;
             if (i <10 ){
-            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof(matchIdCell.value)}"`);
+            console.log(`Checking row ${i + 1}: found match ID "${matchIdCell.value}" and type "${typeof(matchIdCell.value)} vs target "${targetMatchId}" and type "${typeof(targetMatchId)} which is ${matchIdCell.value === targetMatchId ? "a match" : "not a match"}`);
             console.log(typeof(matchId));
             }
             const currentMatchId = String(matchIdCell.value).trim().toUpperCase();
