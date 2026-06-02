@@ -63,11 +63,12 @@ const toDiscordTimestamp = (date:any) => {
 
 
 const getUsernameFromDiscordId = (PLAYER_SHEET:any, discordId:any) => {
-    const limit = Math.min(PLAYER_SHEET.rowCount, 200);
-    for (let i = 0; i < limit; i++) {
+    for (let i = 0; i < 200; i++) {
         const discordIdCell = PLAYER_SHEET.getCell(i, 5);
         if (discordIdCell && String(discordIdCell.value || "").trim() === discordId.trim()) {
             const usernameCell = PLAYER_SHEET.getCell(i, 0);
+            console.log(discordId);
+            console.log(discordIdCell)
             return usernameCell ? String(usernameCell.value || "").trim() : null;
         }
     }
