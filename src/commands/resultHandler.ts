@@ -121,7 +121,7 @@ export async function execute(interaction: any) {
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
             {
                 name: "Bans",
-                value: `**\u200B${data.player1}**:\n${data.bans.ban1}\n\n**\u200B${data.player2}**:\n${data.bans.ban2}`,
+                value: `**\u200B${data.player1}:**\n${data.bans.ban1}\n\n**\u200B${data.player2}:**\n${data.bans.ban2}`,
                 inline: false,
             }
         )
