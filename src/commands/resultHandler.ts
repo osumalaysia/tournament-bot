@@ -115,13 +115,13 @@ export async function execute(interaction: any) {
 
     const resultEmbed = new EmbedBuilder()
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} \${data.player1} #${data.player1seed} ${p1Profile} | ${data.score1} - ${data.score2} | ${p2Profile} #${data.player2seed} ${data.player2} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
+        .setTitle(`${data.score1 >= data.score2 ? "👑" : ""}${data.score1 === 0 ? "<:anzucry:1172856722185015316>" : ""} ${data.player1} #${data.player1seed} ${p1Profile} | ${data.score1} - ${data.score2} | ${p2Profile} #${data.player2seed} ${data.player2} ${data.score2 >= data.score1 ? "👑" : ""}${data.score2 === 0 ? "<:anzucry:1172856722185015316>" : ""}`)
         .addFields(
             { name: "MP LINK", value: `https://osu.ppy.sh/mp/${data.mplink}`, inline: false },
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
             {
                 name: "Bans",
-                value: `\${data.player1}:\n${data.bans.ban1}\n\n\${data.player2}:\n${data.bans.ban2}`,
+                value: `**\u200B${data.player1}**:\n${data.bans.ban1}\n\n**\u200B${data.player2}**:\n${data.bans.ban2}`,
                 inline: false,
             }
         )
