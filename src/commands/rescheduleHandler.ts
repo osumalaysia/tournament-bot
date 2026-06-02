@@ -63,8 +63,8 @@ const toDiscordTimestamp = (date:any) => {
 
 
 const getUsernameFromDiscordId = (PLAYER_SHEET:any, discordId:any) => {
-    const rowCount = PLAYER_SHEET.rowCount;
-    for (let i = 0; i < rowCount; i++) {
+    const limit = Math.min(PLAYER_SHEET.rowCount, 200);
+    for (let i = 0; i < limit; i++) {
         const discordIdCell = PLAYER_SHEET.getCell(i, 5);
         if (discordIdCell && String(discordIdCell.value || "").trim() === discordId.trim()) {
             const usernameCell = PLAYER_SHEET.getCell(i, 0);
@@ -75,8 +75,8 @@ const getUsernameFromDiscordId = (PLAYER_SHEET:any, discordId:any) => {
 };
 
 const getDiscordIdFromUsername = (PLAYER_SHEET:any, username:any) => {
-    const rowCount = PLAYER_SHEET.rowCount;
-    for (let i = 0; i < rowCount; i++) {
+    const limit = Math.min(PLAYER_SHEET.rowCount, 200);
+    for (let i = 0; i < limit; i++) {
         const usernameCell = PLAYER_SHEET.getCell(i, 0);
         if (usernameCell && String(usernameCell.value || "").trim() === username.trim()) {
             const discordIdCell = PLAYER_SHEET.getCell(i, 5);
@@ -207,12 +207,13 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("One or more required sheets not found.");
         }
 
+        let scheduleRows: any, staffRows: any;
         try {
-           await Promise.all([
-            sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`),
-            playerSheet.loadCells("A1:F200"),
-            staffSheet.loadCells("A1:B100")
-        ]);
+           await playerSheet.loadCells("A1:F200");
+           [scheduleRows, staffRows] = await Promise.all([
+               sheet.getRows({ offset: CONFIG.SHEET_START_ROW - 2 }),
+               staffSheet.getRows()
+           ]);
         } catch (err) {
             console.error("Error loading sheet rows:", err);
             throw new Error("Failed to load sheet data.");
@@ -223,7 +224,7 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
             throw new Error("Could not find your Discord ID in the registered player list.");
         }
 
-        const match = getMatchRow(sheet, username, matchId);
+        const match = getMatchRow(scheduleRows, username, matchId);
         if (!match) {
             throw new Error(`Match ID **${matchId}** not found.`);
         }
@@ -328,11 +329,11 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
                             const pings = [];
                             if (match.referee) {
-                                const refereeId = getStaffidFromUsername(staffSheet, match.referee);
+                                const refereeId = getStaffidFromUsername(staffRows, match.referee);
                                 if (refereeId && refereeId !== "unknown") pings.push(`<@${refereeId}>`);
                             }
                             if (match.streamer) {
-                                const staffId = getStaffidFromUsername(staffSheet, match.streamer);
+                                const staffId = getStaffidFromUsername(staffRows, match.streamer);
                                 if (staffId && staffId !== "unknown") pings.push(`<@${staffId}>`);
                             }
 
@@ -381,16 +382,15 @@ export async function execute(interaction:typeof ChatInputCommandInteraction) {
 
         if (interaction.deferred) {
             await interaction.editReply({
-                content: `:cross mark: Error: ${error.message || "An unknown error occurred."}`
+                content: `Error: ${error.message || "An unknown error occurred."}`
             }).catch(console.error);
         } else {
             await interaction.reply({
-                content: `:cross mark: Error: ${error.message || "An unknown error occurred."}`,
+                content: `Error: ${error.message || "An unknown error occurred."}`,
                 flags: [MessageFlags.Ephemeral]
             }).catch(console.error);
         }
     } finally {
-        // Clean up cooldown if not needed anymore
         if (cooldownMap.get(userId) <= Date.now()) {
             cooldownMap.delete(userId);
         }
