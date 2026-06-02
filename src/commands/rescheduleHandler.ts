@@ -186,20 +186,20 @@ export async function execute(interaction:any) {
     const doc = await getDoc(bracketMatchSheetId);
     const sheet = doc.sheetsByTitle[CONFIG.SHEET_TITLE];
     const playerSheet = doc.sheetsByTitle[CONFIG.PLAYER_SHEET];
-    const staffSheet = doc.sheetsByTitle[CONFIG.STAFF_SHEET]; // Instantiated directly from global config string safely
+    const staffSheet = doc.sheetsByTitle[CONFIG.STAFF_SHEET];
 
     if (!sheet) return interaction.editReply({ content: `Sheet '${CONFIG.SHEET_TITLE}' not found.` });
     if (!playerSheet) return interaction.editReply({ content: `Sheet '${CONFIG.PLAYER_SHEET}' not found.` });
     if (!staffSheet) return interaction.editReply({ content: `Sheet '${CONFIG.STAFF_SHEET}' not found.` });
 
-    // 🚀 EXTREME SPEED INCREASE HERE: Parallel row execution caching instead of partial cells load
     const [scheduleRows, playerRows, staffRows] = await Promise.all([
-        sheet.getRows(),
+        sheet.getRows({ 
+            offset: CONFIG.SHEET_START_ROW - 2
+        }),
         playerSheet.getRows(),
         staffSheet.getRows()
     ]);
 
-    // Fast memory lookups
     const username = getUsernameFromDiscordId(playerRows, interaction.user.id);
     if (!username) {
         return interaction.editReply({ content: "Error: Could not find your Discord ID in the registered player list." });
@@ -253,11 +253,10 @@ export async function execute(interaction:any) {
 
         if (i.customId === "accept") {
             try {
-                // High-speed write operation utilizing the existing row reference directly
                 const rowToUpdate = match.rowInstance;
                 rowToUpdate.set('Time', convertFraction(Number(newTimeStr)));
                 rowToUpdate.set('Date', convertDateFormat(newDateStr));
-                await rowToUpdate.save(); // Directly persists change globally in 1 short sync call
+                await rowToUpdate.save(); 
 
                 await sentMessage.edit({ content: `~~${messageText}~~\n✅ <@${opponentId}> accepted!`, components: [] });
                 
