@@ -144,7 +144,12 @@ const getMatchRow = (sheet: any, username: any, matchId: any) => {
 
                 const player1 = p1Cell && p1Cell.value ? String(p1Cell.value).trim() : "";
                 const player2 = p2Cell && p2Cell.value ? String(p2Cell.value).trim() : "";
-
+                   console.log(`=== PARTICIPANT DIAGNOSTIC FOR ROW ${i + 1} ===`);
+                   console.log(`Sheet Player 1: "${player1.toLowerCase()}"`);
+                  console.log(`Sheet Player 2: "${player2.toLowerCase()}"`);
+                  console.log(`Your Registered Username: "${targetUser}"`);
+                  console.log(`=============================================`);
+                  console.log(`Checking if user is a participant: ${player1.toLowerCase() === targetUser} || ${player2.toLowerCase() === targetUser}`);
                 const isParticipant = player1.toLowerCase() === targetUser || player2.toLowerCase() === targetUser;
 
                 if (isParticipant) {
