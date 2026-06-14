@@ -41,9 +41,6 @@ export const data = new SlashCommandBuilder()
     )
     .addStringOption((winnerId: any) =>
         winnerId.setName("winnerId").setDescription("Player 2 ID").setRequired(true)
-    )
-    .addStringOption((reason: any) =>
-        reason.setName("reason").setDescription("Reason for the forfeit").setRequired(false)
     );
 
 export async function execute(interaction: any) {
@@ -74,7 +71,6 @@ export async function execute(interaction: any) {
         winnerSeed: interaction.options.getString("player2seed"),
         forfeitId: interaction.options.getString("forfeitId"),
         winnerId: interaction.options.getString("winnerId"),
-        reason: interaction.options.getString("reason") || "No reason provided",
     };
 
     const resultEmbed = new EmbedBuilder()
