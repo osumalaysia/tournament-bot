@@ -25,10 +25,10 @@ export const data = new SlashCommandBuilder()
         stages.setName("stages").setDescription("Stages of the match").setRequired(true)
     )
     .addStringOption((forfeit: any) =>
-        forfeit.setName("forfeitPlayer").setDescription("Player 1").setRequired(true)
+        forfeit.setName("forfeit_player").setDescription("Player 1").setRequired(true)
     )
     .addStringOption((winner: any) =>
-        winner.setName("winnerPlayer").setDescription("Player 2").setRequired(true)
+        winner.setName("winner_player").setDescription("Player 2").setRequired(true)
     )
     .addStringOption((forfeitSeed: any) =>
         forfeitSeed.setName("player1seed").setDescription("Player 1 Seed").setRequired(true)
@@ -37,10 +37,10 @@ export const data = new SlashCommandBuilder()
         winnerSeed.setName("player2seed").setDescription("Player 2 Seed").setRequired(true)
     )
     .addStringOption((forfeitId: any) =>
-        forfeitId.setName("forfeitId").setDescription("Player 1 ID").setRequired(true)
+        forfeitId.setName("forfeit_id").setDescription("Player 1 ID").setRequired(true)
     )
     .addStringOption((winnerId: any) =>
-        winnerId.setName("winnerId").setDescription("Player 2 ID").setRequired(true)
+        winnerId.setName("winner_id").setDescription("Player 2 ID").setRequired(true)
     );
 
 export async function execute(interaction: any) {
@@ -65,12 +65,12 @@ export async function execute(interaction: any) {
     const data = {
         matchId: interaction.options.getString("matchid"),
         stages: interaction.options.getString("stages"),
-        forfeit: interaction.options.getString("forfeitPlayer"),
-        winner: interaction.options.getString("winnerPlayer"),
+        forfeit: interaction.options.getString("forfeit_player"),
+        winner: interaction.options.getString("winner_player"),
         forfeitSeed: interaction.options.getString("player1seed"),
         winnerSeed: interaction.options.getString("player2seed"),
-        forfeitId: interaction.options.getString("forfeitId"),
-        winnerId: interaction.options.getString("winnerId"),
+        forfeitId: interaction.options.getString("forfeit_id"),
+        winnerId: interaction.options.getString("winner_id"),
     };
 
     const resultEmbed = new EmbedBuilder()
