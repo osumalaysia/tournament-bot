@@ -8,7 +8,7 @@ const commandHandler = require("./handler/commandHandler");
 const statsUtil = require('./stats/stats util.js');
 const formula = require('./stats/formula.js');
 const util = require('./stats/util.js');
-const { getDoc } = require("../handler/googleSheetAuth");
+const { getDoc,loadDoc } = require("../handler/googleSheetAuth");
 
 function handleError(err: unknown): string {
     return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
@@ -77,7 +77,7 @@ client.on('messageCreate', async (msg: typeof Message) => {
                 }
             } break;
             case 'stats': {
-                const doc = await getDoc(args.shift());
+                const doc = await loadDoc(args.shift());
                 await statsUtil.supdate(doc, msg);
             } break;
         }

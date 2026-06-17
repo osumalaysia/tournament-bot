@@ -19,5 +19,11 @@ const getDoc = async (spreadsheetId: string) => {
   return docs.get(spreadsheetId);
 }
 
-module.exports = { getDoc };
+const loadDoc = async (spreadsheetId: string) => {
+  const doc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth);
+  await doc.loadInfo();
+  return doc;
+};
+
+module.exports = { getDoc, loadDoc };
 export {};
