@@ -48,7 +48,7 @@ export async function supdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
 
   const [mps] = await Promise.all([
     util
-      .loadY(doc.sheetsByTitle['Import']!, 2, 2)
+      .loadY(doc.sheetsByTitle['MP Links']!, 8, 4)
       .then((data) => data.map((row) => row[0] as number))
       .finally(importTimer),
     cache.load().finally(cacheTimer),
