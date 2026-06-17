@@ -8,7 +8,7 @@ const commandHandler = require("./handler/commandHandler");
 const statsUtil = require('./stats/stats_util.js');
 const formula = require('./stats/formula.js');
 const util = require('./stats/util.js');
-const { getDoc,loadDoc } = require("../handler/googleSheetAuth");
+const { getDoc,loadDoc } = require("./handler/googleSheetAuth");
 
 function handleError(err: unknown): string {
     return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
