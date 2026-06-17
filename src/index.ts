@@ -1,9 +1,14 @@
+const { GoogleSpreadsheet } = require("google-spreadsheet");
 const { Message } = require("discord.js");
 require("dotenv").config();
 const { DISCORD_TOKEN } = process.env;
 const Util = require('util');
 const { Client, GatewayIntentBits, MessageFlags, Partials, ActivityType } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
+const statsUtil = require('./stats/stats util.js');
+const formula = require('./stats/formula.js');
+const util = require('./stats/util.js');
+const { getDoc } = require("../handler/googleSheetAuth");
 
 function handleError(err: unknown): string {
     return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
@@ -70,6 +75,10 @@ client.on('messageCreate', async (msg: typeof Message) => {
                 } catch (err: any) {
                     await msg.channel.send('```js\n' + err.stack.substring(0, 2000 - 10) + '\n```');
                 }
+            } break;
+            case 'stats': {
+                const doc = await getDoc(args.shift());
+                await statsUtil.supdate(doc, msg);
             } break;
         }
     } catch (err: any) {
