@@ -198,5 +198,5 @@ export async function StatsData(
   }
 
   const transposed = transposeRows(outputArray);
-  await util.putXY(sheet, 2, 2, ...transposed);
+  await util.putXY(sheet, 0, 1, ...transposed);
 }
