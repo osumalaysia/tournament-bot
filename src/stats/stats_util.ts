@@ -51,15 +51,8 @@ export async function supdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
       .loadY(doc.sheetsByTitle['Import']!, 2, 2)
       .then((data) => data.map((row) => row[0] as number))
       .finally(importTimer),
-    util
-      .loadY(doc.sheetsByTitle['Settings']!, 2, 4)
-      .then((data) => {
-        formula.setParseModEnumSettings(data.map((row) => row[0] as number));
-      })
-      .finally(settingsTimer),
     cache.load().finally(cacheTimer),
   ]);
-
   const processTimer = timer('Processing');
   await formula
     .StatsData(mps, outputSheet, (id) => cache.fetch(id))

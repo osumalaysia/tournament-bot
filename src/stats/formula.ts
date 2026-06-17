@@ -55,91 +55,6 @@ type MpFetcher = (id: number | string) => Promise<OsuMatchResult>;
 
 type Grade = 'SSH' | 'SS' | 'SH' | 'S' | 'A' | 'B' | 'C' | 'D';
 
-// --- Mod Enum ---
-
-export let parseModEnumSettings: number[] | null = null;
-
-export function setParseModEnumSettings(settings: number[]): void {
-  parseModEnumSettings = settings;
-}
-
-function buildModEnum(multiplierChangeArr: number[]): ModEntry[] {
-  return [
-    { name: 'None', abbr: 'NM', value: 0, multiplier: multiplierChangeArr[0]! },
-    { name: 'NoFail', abbr: 'NF', value: 1, multiplier: multiplierChangeArr[1]! },
-    { name: 'Easy', abbr: 'EZ', value: 2, multiplier: 0.5 * multiplierChangeArr[2]! },
-    { name: 'TouchDevice', abbr: 'TD', value: 4, multiplier: multiplierChangeArr[0]! },
-    { name: 'Hidden', abbr: 'HD', value: 8, multiplier: 1.06 * multiplierChangeArr[3]! },
-    { name: 'DoubleTime', abbr: 'DT', value: 64, multiplier: 1.2 * multiplierChangeArr[5]! },
-    { name: 'HardRock', abbr: 'HR', value: 16, multiplier: 1.1 * multiplierChangeArr[4]! },
-    { name: 'SuddenDeath', abbr: 'SD', value: 32, multiplier: multiplierChangeArr[0]! },
-    { name: 'Relax', abbr: 'RX', value: 128, multiplier: multiplierChangeArr[6]! },
-    { name: 'HalfTime', abbr: 'HT', value: 256, multiplier: 0.3 * multiplierChangeArr[7]! },
-    { name: 'Nightcore', abbr: 'NC', value: 512, multiplier: 1 },
-    { name: 'Flashlight', abbr: 'FL', value: 1024, multiplier: 1.12 * multiplierChangeArr[8]! },
-    { name: 'SpunOut', abbr: 'SO', value: 4096, multiplier: 0.9 * multiplierChangeArr[9]! },
-    { name: 'Perfect', abbr: 'PF', value: 16384, multiplier: 1 * multiplierChangeArr[0]! },
-    { name: 'Key4', abbr: 'K4', value: 32768, multiplier: 'key4' },
-    { name: 'Key5', abbr: 'K5', value: 65536, multiplier: 'key5' },
-    { name: 'Key6', abbr: 'K6', value: 131072, multiplier: 'key6' },
-    { name: 'Key7', abbr: 'K7', value: 262144, multiplier: 'key7' },
-    { name: 'Key8', abbr: 'K8', value: 524288, multiplier: 'key8' },
-    { name: 'FadeIn', abbr: 'FI', value: 1048576, multiplier: multiplierChangeArr[0]! },
-    { name: 'Key9', abbr: 'K9', value: 16777216, multiplier: 'key9' },
-    { name: 'Key1', abbr: 'K1', value: 67108864, multiplier: 'key1' },
-    { name: 'Key3', abbr: 'K3', value: 134217728, multiplier: 'key3' },
-    { name: 'Key2', abbr: 'K2', value: 268435456, multiplier: 'key2' },
-    { name: 'Mirror', abbr: 'MR', value: 1073741824, multiplier: multiplierChangeArr[0]! },
-  ];
-}
-
-// Return type depends on returnType: 1 => number, 2 => string, 3 => string
-export function parseModEnum(enumNumber: number, returnType: 1): number;
-export function parseModEnum(enumNumber: number, returnType: 2): string;
-export function parseModEnum(enumNumber: number, returnType: 3): string;
-export function parseModEnum(enumNumber: number, returnType: 1 | 2 | 3): number | string {
-  if (parseModEnumSettings === null) {
-    throw new Error('Please set the multiplier');
-  }
-
-  const modEnum = buildModEnum(parseModEnumSettings);
-
-  // Handle the "None" (0) case
-  if (enumNumber === 0) {
-    if (returnType === 1) return modEnum[0]!.multiplier as number;
-    if (returnType === 2) return modEnum[0]!.abbr;
-    return modEnum[0]!.name;
-  }
-
-  const resultMultipliers: number[] = [];
-  const resultStrings: string[] = [];
-
-  for (const mod of modEnum) {
-    if ((enumNumber & mod.value) > 0) {
-      // Nightcore (512) is skipped in all return types
-      if (mod.value === 512) continue;
-
-      // Perfect (16384) falls back to modEnum[13] (which is the Perfect entry at index 13)
-      const effective = mod.value === 16384 ? modEnum[13]! : mod;
-
-      if (returnType === 1) {
-        resultMultipliers.push(effective.multiplier as number);
-      } else if (returnType === 2) {
-        resultStrings.push(effective.abbr);
-      } else {
-        resultStrings.push(effective.name);
-      }
-    }
-  }
-
-  if (returnType === 1) {
-    return resultMultipliers.reduce((a, b) => a * b, 1);
-  }
-  if (returnType === 2) {
-    return resultStrings.join('');
-  }
-  return resultStrings.join(', ');
-}
 
 // --- Grade Calculation ---
 
@@ -177,21 +92,6 @@ interface ResolvedMods {
   playerMods: string;
   scoreMult: number;
   isHDorFL: string;
-}
-
-function resolveMods(enabledMods: number, forcedMods: number): ResolvedMods {
-  if (enabledMods === 0 || isNaN(enabledMods)) {
-    return {
-      playerMods: parseModEnum(forcedMods, 2),
-      scoreMult: parseModEnum(forcedMods, 1),
-      isHDorFL: parseModEnum(forcedMods, 2),
-    };
-  }
-  return {
-    playerMods: parseModEnum(enabledMods, 2),
-    scoreMult: parseModEnum(enabledMods, 1),
-    isHDorFL: parseModEnum(enabledMods, 2),
-  };
 }
 
 // --- Parse score entry helpers ---
@@ -269,17 +169,14 @@ export async function StatsData(
 
       for (const scoreEntry of game.scores) {
         const parsed = parseScoreEntry(game, scoreEntry, matchJson);
-        const { playerMods, scoreMult, isHDorFL } = resolveMods(
-          parsed.enabledMods,
-          parsed.forcedMods,
-        );
+
         const grade = calculateGrade(
           parsed.accuracy,
           parsed.count300,
           parsed.count50,
           parsed.countMiss,
           parsed.hitObjCount,
-          isHDorFL,
+          parsed.enabledMods.toString(),
         );
         // Match Name    Match ID    User ID    Map ID    Score    Pass Status
         outputArray.push([
@@ -291,7 +188,7 @@ export async function StatsData(
           parsed.score,
           parsed.accuracy,
           grade,
-          playerMods,
+          parsed.enabledMods.toString(),
           parsed.passStatus,
         ]);
       }
