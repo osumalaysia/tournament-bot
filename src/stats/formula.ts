@@ -164,6 +164,8 @@ export async function StatsData(
 
     const matchJson = await mpFetcher(matchId);
 
+    if (!matchJson || !matchJson.games) continue;
+
     for (const game of matchJson.games) {
       if (game.scores.length === 0) continue;
 
