@@ -4,11 +4,11 @@ import type { Client, Message, TextChannel } from 'discord.js';
 import type { pingCommand, pingMessage } from '../ping_commands/types';
 import { CONFIG } from '../config';
 
-export function registerOwnerCommands(client: Client): void {
+export function registerPingCommands(client: Client): void {
   const commands = new Map<string, pingCommand>();
 
 
-  const commandsDir = path.join(__dirname, '../owner_commands');
+  const commandsDir = path.join(__dirname, '../ping_commands');
   const files = fs.readdirSync(commandsDir).filter(
     (file: string) =>
       (file.endsWith('.js') || file.endsWith('.ts')) &&
@@ -20,7 +20,7 @@ export function registerOwnerCommands(client: Client): void {
   for (const file of files) {
     const command: pingCommand = require(path.join(commandsDir, file));
     commands.set(command.name, command);
-    console.log(`Loaded owner command: ${command.name}`);
+    console.log(`Loaded ping command: ${command.name}`);
   }
 
 

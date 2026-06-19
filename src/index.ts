@@ -2,7 +2,7 @@ require("dotenv").config();
 const { DISCORD_TOKEN } = process.env;
 const { Client, GatewayIntentBits, Partials, ActivityType } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
-import { registerOwnerCommands } from './handler/ownerCommandHandler';
+import { registerOwnerCommands } from './handler/PingCommandHandler';
 
 
 function handleError(err: unknown): string {
