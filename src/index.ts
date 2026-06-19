@@ -2,7 +2,7 @@ require("dotenv").config();
 const { DISCORD_TOKEN } = process.env;
 const { Client, GatewayIntentBits, Partials, ActivityType } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
-import { registerOwnerCommands } from './handler/PingCommandHandler';
+import { registerPingCommands } from './handler/PingCommandHandler';
 
 
 function handleError(err: unknown): string {
@@ -32,7 +32,7 @@ const client = new Client({
 });
 
 commandHandler(client);
-registerOwnerCommands(client);
+registerPingCommands(client);
 
 client.on("interactionCreate", async (interaction: any) => {
     if (!interaction.isCommand()) return;
