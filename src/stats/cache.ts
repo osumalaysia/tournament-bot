@@ -1,50 +1,10 @@
-import type { GoogleSpreadsheetWorksheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
+import type { GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
+import type { OsuMatchResult, SheetRow } from './types';
 
-const token: string = process.env.OSU_TOKEN ?? '';
 
+const OSU_API_TOKEN: string = process.env.OSU_TOKEN ?? '';
 const RATE_LIMIT_MS = 2000;
-
-interface OsuMatchResult {
-  match: {
-    match_id: string;
-    name: string;
-    end_time: string | null;
-  };
-  games: OsuGame[];
-}
-
-interface OsuGame {
-  game_id: string;
-  beatmap_id: string;
-  mods: string;
-  scores: OsuScore[];
-}
-
-interface OsuScore {
-  user_id: string;
-  score: string;
-  maxcombo: string;
-  count50: string;
-  count100: string;
-  count300: string;
-  countmiss: string;
-  pass: string;
-  enabled_mods: string | null;
-}
-
-interface SheetRow {
-  get id(): string;
-  set id(value: string);
-  get value(): string;
-  set value(value: string);
-  delete(): Promise<void>;
-  save(): Promise<void>;
-}
-
-const options = {
-  offset: 0,
-  limit: 2 ** 27,
-};
+const SHEET_ROW_OPTIONS = { offset: 0, limit: 2 ** 27 };
 
 let delay: Promise<void> | null = null;
 
@@ -53,35 +13,37 @@ const fetchMp = async (id: number): Promise<OsuMatchResult> => {
   const old = delay;
   delay = new Promise<void>((rs) => (resolve = rs));
   await old;
+
   return fetch(
-    `https://osu.ppy.sh/api/get_match?k=${token}&mp=${id}`,
+    `https://osu.ppy.sh/api/get_match?k=${OSU_API_TOKEN}&mp=${id}`,
   )
     .then((res) => res.json() as Promise<OsuMatchResult>)
     .finally(() => setTimeout(resolve!, RATE_LIMIT_MS));
 };
 
 export default class Cache extends Map<number, OsuMatchResult> {
-  private _sheet: GoogleSpreadsheetWorksheet;
+  private readonly sheet: GoogleSpreadsheetWorksheet;
 
   constructor(sheet: GoogleSpreadsheetWorksheet) {
     super();
-    this._sheet = sheet;
+    this.sheet = sheet;
   }
 
   async fetch(id: number | string): Promise<OsuMatchResult> {
     const numericId = +id;
+
     if (this.has(numericId)) {
       const mp = this.get(numericId)!;
       if (mp.match.end_time !== null) return mp;
     }
+
     const result = await fetchMp(numericId);
     this.set(numericId, result);
     return result;
   }
 
   async load(): Promise<void> {
-    const sheet = this._sheet;
-    const list = (await sheet.getRows(options)) as unknown as SheetRow[];
+    const list = (await this.sheet.getRows(SHEET_ROW_OPTIONS)) as unknown as SheetRow[];
     this.clear();
     for (const { id, value } of list) {
       this.set(+id, JSON.parse(value) as OsuMatchResult);
@@ -89,11 +51,9 @@ export default class Cache extends Map<number, OsuMatchResult> {
   }
 
   async save(): Promise<void> {
-    const sheet = this._sheet;
-    const list = (await sheet.getRows(options)) as unknown as SheetRow[];
+    const list = (await this.sheet.getRows(SHEET_ROW_OPTIONS)) as unknown as SheetRow[];
     const promises: Promise<unknown>[] = [];
 
-    // Delete rows that are no longer in the cache
     for (const row of list) {
       if (this.has(+row.id)) continue;
       console.log(row);
@@ -104,6 +64,7 @@ export default class Cache extends Map<number, OsuMatchResult> {
     for (const [id, value] of this.entries()) {
       const found = list.find((row) => +row.id === id) ?? null;
       const data = JSON.stringify(value);
+
       if (found !== null) {
         if (found.value === data) continue;
         found.value = data;
@@ -112,13 +73,15 @@ export default class Cache extends Map<number, OsuMatchResult> {
         missing.push([String(id), JSON.stringify(value)]);
       }
     }
+
     if (missing.length) {
-      promises.push(sheet.addRows(missing as any, { insert: true }));
+      promises.push(this.sheet.addRows(missing as any, { insert: true }));
     }
+
     await Promise.all(promises);
   }
 
-  // Override Map methods to normalize id to number
+
   get(id: number | string): OsuMatchResult | undefined {
     return super.get(+id);
   }

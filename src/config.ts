@@ -25,3 +25,7 @@ export const QUALIFIER = {
     MAX_PLAYER_ROWS: 200,
   }
 }
+
+export const STATS = {
+  SHEET_ID: "1uorqzAaex5Ffj2VACT6yLkhm6sVVb0Q0aXmA55buHtk",
+}

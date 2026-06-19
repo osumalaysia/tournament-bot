@@ -5,43 +5,34 @@ import Cache from './cache';
 import * as formula from './formula';
 
 const CODE_BLOCK = '```';
-
-// --- Timer helper ---
-
-interface TimerResult {
-  stop: () => void;
-  entries: string[];
-}
-
-function createTimerContext(): TimerResult & { timer: (name: string) => () => void } {
+//Timer Helper
+function createTimerContext() {
   const entries: string[] = [];
 
   const timer = (name: string): (() => void) => {
     const start = Date.now();
     return () => {
-      const durationSecond = (Date.now() - start) / 1000;
-      entries.push(`\`${name}\` took ${durationSecond}s`);
+      const durationSec = (Date.now() - start) / 1000;
+      entries.push(`\`${name}\` took ${durationSec}s`);
     };
   };
 
-  return { timer, entries, stop: () => {} };
+  return { timer, entries };
 }
 
-
-
-// --- Stats Update ---
-export async function supdate(doc: GoogleSpreadsheet, msg: Message): Promise<void> {
+export async function update(doc: GoogleSpreadsheet, msg: Message): Promise<void> {
   const channel = msg.channel as TextChannel;
   const status = await channel.send('Updating....');
   const { timer, entries: timed } = createTimerContext();
 
   await doc.loadInfo();
+
   const cacheSheet = doc.sheetsByTitle['Cache']!;
   const outputSheet = doc.sheetsByTitle['_api']!;
   const cache = new Cache(cacheSheet);
 
-  const [importTimer, settingsTimer, cacheTimer] = (
-    'Import Loader,Settings Loader,Cache Loader'
+  const [importTimer, cacheTimer] = (
+    'Import Loader,Cache Loader'
       .split(',')
       .map((name) => timer(name))
   );
@@ -53,6 +44,7 @@ export async function supdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
       .finally(importTimer),
     cache.load().finally(cacheTimer),
   ]);
+
   const processTimer = timer('Processing');
   await formula
     .StatsData(mps, outputSheet, (id) => cache.fetch(id))
@@ -70,7 +62,6 @@ export async function supdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
   );
 }
 
-// --- Tryout Update ---
 /*
 export async function tupdate(doc: GoogleSpreadsheet, msg: Message): Promise<void> {
   const channel = msg.channel as TextChannel;
@@ -78,6 +69,7 @@ export async function tupdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
   const { timer, entries: timed } = createTimerContext();
 
   await doc.loadInfo();
+
   const cacheSheet = doc.sheetsByTitle['Cache']!;
   const outputSheet = doc.sheetsByTitle['Evaluation']!;
   const cache = new Cache(cacheSheet);
@@ -117,4 +109,5 @@ export async function tupdate(doc: GoogleSpreadsheet, msg: Message): Promise<voi
   await status.edit(
     `Tryout Sheet has been updated\t${CODE_BLOCK}js\n${timed.join('\n')}\n${CODE_BLOCK}`,
   );
-} */
+}
+*/

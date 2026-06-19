@@ -1,22 +1,27 @@
 import type { GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
+import type { CellValue } from './types';
 
-type CellValue = string | number | boolean | null;
 
 const COLUMN_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-const formatRow = (offset: number, char: string = COLUMN_CHARS): string => {
+const columnToLetter = (offset: number, chars: string = COLUMN_CHARS): string => {
   if (typeof offset !== 'number') throw new TypeError('offset should be a number');
-  const base = char.length;
+  const base = chars.length;
   const output: number[] = [offset % base];
-  for (let remain = Math.floor(offset / base); remain--; ) {
+  for (let remain = Math.floor(offset / base); remain--;) {
     output.unshift(remain % base);
     remain = Math.floor(remain / base);
   }
-  return output.map((n) => char[n]).join('');
+  return output.map((n) => chars[n]).join('');
 };
 
-const formatXY = (x: number, y: number, width: number = 1, height: number = 1): string =>
-  `${formatRow(x)}${y + 1}:${formatRow(x + width - 1)}${y + height}`;
+const formatRange = (
+  x: number,
+  y: number,
+  width: number = 1,
+  height: number = 1,
+): string =>
+  `${columnToLetter(x)}${y + 1}:${columnToLetter(x + width - 1)}${y + height}`;
 
 export const loadY = async (
   sheet: GoogleSpreadsheetWorksheet,
@@ -27,16 +32,21 @@ export const loadY = async (
 ): Promise<CellValue[][]> => {
   const output: CellValue[][] = [];
   let offsetY = y;
+
   while (true) {
     if (offsetY + preload > sheet.rowCount) preload = sheet.rowCount - offsetY;
     else if (offsetY + 1 === sheet.rowCount) return output;
-    await sheet.loadCells(formatXY(x, offsetY, more, preload));
+
+    await sheet.loadCells(formatRange(x, offsetY, more, preload));
+
     for (let amount = preload; amount; --amount, ++offsetY) {
       const current: CellValue[] = [];
       let offsetX = x;
+
       current.push(sheet.getCell(offsetY, offsetX).value as CellValue);
       if (current[0] === null) return output;
-      for (let amount = more; --amount; ) {
+
+      for (let colsLeft = more; --colsLeft;) {
         current.push(sheet.getCell(offsetY, ++offsetX).value as CellValue);
       }
       output.push(current);
@@ -52,78 +62,96 @@ export const putXY = async (
 ): Promise<void> => {
   const xSize = data.length;
   const ySize = data.reduce(
-    (max, current) => (current.length > max ? current.length : max),
+    (max, col) => (col.length > max ? col.length : max),
     0,
   );
   if (!ySize || !xSize) return;
-  await sheet.loadCells(formatXY(x, y, xSize, ySize));
-  data.forEach((list, xIndex) => {
-    const xOffset = x + +xIndex;
-    list.forEach((value, yIndex) => {
+
+  await sheet.loadCells(formatRange(x, y, xSize, ySize));
+
+  data.forEach((column, xIndex) => {
+    const xOffset = x + xIndex;
+    column.forEach((value, yIndex) => {
       try {
-        const yOffset = y + +yIndex;
+        const yOffset = y + yIndex;
         const cell = sheet.getCell(yOffset, xOffset);
         if (cell.value === value) return;
         cell.value = value as string | number | boolean;
-      } catch (_err) {
-        // console.log(`Failed to assign value (${value}): ${err.stack}`);
+      } catch {
       }
     });
   });
 };
 
-// --- Table building utilities ---
+// Box-drawing characters: ─ │ ┌ ┬ ┐ ├ ┼ ┤ └ ┴ ┘
 
-const buildLine = (
+const appendBorderLine = (
   output: string[],
-  sizes: number[],
-  start: string,
+  widths: number[],
+  left: string,
   mid: string,
-  end: string,
+  right: string,
 ): void => {
-  if (!sizes.length) return;
-  output.push(start);
-  sizes.forEach((size, index, arr) => {
-    output.push('─'.repeat(2 + size));
-    output.push(index === arr.length - 1 ? end : mid);
+  if (!widths.length) return;
+  output.push(left);
+  widths.forEach((width, i, arr) => {
+    output.push('─'.repeat(2 + width));
+    output.push(i === arr.length - 1 ? right : mid);
   });
 };
 
-const buildString = (
+const appendDataRow = (
   output: string[],
-  sizes: number[],
-  data: string[],
+  widths: number[],
+  cells: string[],
 ): void => {
-  if (!sizes.length) return;
-  const char = '│';
-  output.push(char);
-  sizes.forEach((size, index) => {
-    const string = data[index]!;
-    output.push(' ', string, ' '.repeat(size - string.length + 1), char);
+  if (!widths.length) return;
+  output.push('│');
+  widths.forEach((width, i) => {
+    const text = cells[i]!;
+    output.push(' ', text, ' '.repeat(width - text.length + 1), '│');
   });
 };
 
+/**
+ * Build a Unicode box-drawing table from column arrays.
+ *
+ * ```
+ * ┌──────┬───────┐
+ * │ Name │ Score │
+ * ├──────┼───────┤
+ * │ Foo  │ 1000  │
+ * │ Bar  │ 2000  │
+ * └──────┴───────┘
+ * ```
+ */
 export const buildTable = (...columns: string[][]): string => {
-  //─│┌┬┐├┼┤└┴┘
-  const maxSizes = columns.map((column) =>
-    column.reduce((max, string) => (max > string.length ? max : string.length), 0),
+  const maxWidths = columns.map((col) =>
+    col.reduce((max, str) => (max > str.length ? max : str.length), 0),
   );
+
   const output: string[] = [];
-  buildLine(output, maxSizes, '┌', '┬', '┐');
+
+  appendBorderLine(output, maxWidths, '┌', '┬', '┐');
   output.push('\n');
-  let at = 0;
-  const row: string[] = [];
-  for (const index in columns) row.push(columns[index]![at]!);
-  buildString(output, maxSizes, row.splice(0));
+
+  let row = 0;
+  const cells: string[] = [];
+  for (const col of columns) cells.push(col[row]!);
+  appendDataRow(output, maxWidths, cells.splice(0));
   output.push('\n');
-  buildLine(output, maxSizes, '├', '┼', '┤');
+
+  appendBorderLine(output, maxWidths, '├', '┼', '┤');
   output.push('\n');
-  ++at;
+
+  ++row;
   do {
-    for (const index in columns) row.push(columns[index]![at]!);
-    buildString(output, maxSizes, row.splice(0));
+    for (const col of columns) cells.push(col[row]!);
+    appendDataRow(output, maxWidths, cells.splice(0));
     output.push('\n');
-  } while (++at < columns[0]!.length);
-  buildLine(output, maxSizes, '└', '┴', '┘');
+  } while (++row < columns[0]!.length);
+
+  appendBorderLine(output, maxWidths, '└', '┴', '┘');
+
   return output.join('');
 };
