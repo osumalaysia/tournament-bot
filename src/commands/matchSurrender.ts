@@ -77,7 +77,7 @@ export async function execute(interaction: any) {
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
         .setTitle(`Win by Default for ${data.winner} #${data.winnerSeed} ${winnerProfile || ""}`)
         .setDescription(
-            `**${data.forfeit}** ${data.forfeitSeed} ${forfeitProfile || ""} has forfeited the match.`
+            `**${data.forfeit}** #${data.forfeitSeed} ${forfeitProfile || ""} has forfeited the match.`
         )
         .setFooter({ text: `${TOURNAMENT_NAME}` })
         .setTimestamp();
