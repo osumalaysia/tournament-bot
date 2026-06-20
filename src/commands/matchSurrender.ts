@@ -58,8 +58,8 @@ export async function execute(interaction: any) {
 
     const iconURL = interaction.guild?.iconURL({ size: 512, extension: "png" }) || undefined;
     const [forfeitProfile, winnerProfile] = await Promise.all([
-        makeEmoji(emojiGuild, interaction.options.getString("forfeitId"), "p1"),
-        makeEmoji(emojiGuild, interaction.options.getString("winnerId"), "p2"),
+        makeEmoji(emojiGuild, interaction.options.getString("forfeit_id"), "p1"),
+        makeEmoji(emojiGuild, interaction.options.getString("winner_id"), "p2"),
     ]);
 
     const data = {
@@ -75,7 +75,7 @@ export async function execute(interaction: any) {
 
     const resultEmbed = new EmbedBuilder()
         .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`Win by Default for ${data.winner} ${data.winnerSeed} ${winnerProfile || ""}`)
+        .setTitle(`Win by Default for ${data.winner} #${data.winnerSeed} ${winnerProfile || ""}`)
         .setDescription(
             `**${data.forfeit}** ${data.forfeitSeed} ${forfeitProfile || ""} has forfeited the match.`
         )
