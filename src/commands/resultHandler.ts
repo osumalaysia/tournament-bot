@@ -57,12 +57,12 @@ export const data = new SlashCommandBuilder()
     .addStringOption((ban2: any) =>
         ban2.setName("ban2").setDescription("Ban 2").setRequired(true)
     )
-  /*  .addStringOption((ban3: any) =>
+    .addStringOption((ban3: any) =>
         ban3.setName("ban3").setDescription("Ban 3").setRequired(true)
     )
     .addStringOption((ban4: any) =>
         ban4.setName("ban4").setDescription("Ban 4").setRequired(true)
-    ) */
+    )
     .addStringOption((firstpick: any) =>
         firstpick.setName("firstpick").setDescription("First Pick").setRequired(true)
     )
