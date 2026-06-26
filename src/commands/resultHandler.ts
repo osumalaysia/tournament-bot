@@ -105,8 +105,8 @@ export async function execute(interaction: any) {
         bans: {
             ban1: interaction.options.getString("ban1"),
             ban2: interaction.options.getString("ban2"),
-        //  ban3: interaction.options.getString("ban3"),
-        // ban4: interaction.options.getString("ban4"),
+            ban3: interaction.options.getString("ban3"),
+            ban4: interaction.options.getString("ban4"),
         },
         firstpick: interaction.options.getString("firstpick"),
         firstban: interaction.options.getString("firstban"),
@@ -121,7 +121,7 @@ export async function execute(interaction: any) {
             { name: "Picks/Bans", value: `First Pick: ${data.firstpick}\nFirst Ban: ${data.firstban}`, inline: false },
             {
                 name: "Bans",
-                value: `**\u200B${data.player1}:**\n${data.bans.ban1}\n\n**\u200B${data.player2}:**\n${data.bans.ban2}`,
+                value: `**\u200B${data.player1}:**\n${data.bans.ban1}\n${data.bans.ban3}\n\n**\u200B${data.player2}:**\n${data.bans.ban2}\n${data.bans.ban4}`,
                 inline: false,
             }
         )
