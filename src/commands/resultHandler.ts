@@ -1,9 +1,11 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
+const { CONFIG } = require("../config");
 
 const TOURNAMENT_NAME = "o!M4T 2026";
 const EMOJI_GUILD_ID = "905398607895752735";
 const TARGET_CHANNEL_ID = "1457807376546533386";
 const ROLE_ID = "1457806106058297518";
+
 
 async function makeEmoji(emojiGuild: any, userId: any, name = "profile") {
     try {
@@ -75,7 +77,7 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: any) {
     
-    if (!interaction.member.roles.cache.has(ROLE_ID)) {
+    if (!interaction.member.roles.cache.has(ROLE_ID) || interaction.user.id !== CONFIG.DEVELOPER_ID) {
         await interaction.reply({ content: "Don't be an asshole", flags: 1 << 6 });
         return;
     } else if (!interaction.inGuild()) {
