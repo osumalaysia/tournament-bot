@@ -77,9 +77,9 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction: any) {
     
-    if (!interaction.member.roles.cache.has(ROLE_ID) || interaction.user.id !== CONFIG.DEVELOPER_ID) {
-        await interaction.reply({ content: "Don't be an asshole", flags: 1 << 6 });
-        return;
+    if (!interaction.member.roles.cache.has(ROLE_ID) && interaction.user.id !== CONFIG.DEVELOPER_ID) {
+    await interaction.reply({ content: "Don't be an asshole", flags: 1 << 6 });
+    return;
     } else if (!interaction.inGuild()) {
         await interaction.reply({ content: "Thoughts you can use it in a dm huh!" });
         return;
