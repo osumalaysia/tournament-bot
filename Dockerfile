@@ -15,6 +15,5 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
 
-COPY staff.cfg .
 COPY --from=builder /app/dist ./dist
 CMD ["sh", "-c", "node dist/deploy.js && exec node dist/index.js"]

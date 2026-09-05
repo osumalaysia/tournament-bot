@@ -3,6 +3,8 @@ const { DISCORD_TOKEN } = process.env;
 const { Client, GatewayIntentBits, Partials, ActivityType } = require("discord.js");
 const commandHandler = require("./handler/commandHandler");
 import { registerPingCommands } from './handler/PingCommandHandler';
+import { startAniListWatcher } from './anilist/watcher';
+import { ANILIST } from './config';
 
 
 function handleError(err: unknown): string {
