@@ -17,7 +17,7 @@ function extractEpisodeNumber(progress: string | null): string {
   return match ? match[1]! : progress;
 }
 
-function buildEpisodeEmbed(activity: AniListListActivity): EmbedBuilder {
+function buildEpisodeEmbed(activity: AniListListActivity, username: string): EmbedBuilder {
   const media = activity.media;
   const title = media?.title.userPreferred ?? media?.title.romaji ?? media?.title.english ?? "Unknown anime";
   const episode = extractEpisodeNumber(activity.progress);
@@ -25,13 +25,12 @@ function buildEpisodeEmbed(activity: AniListListActivity): EmbedBuilder {
 
   return new EmbedBuilder()
     .setColor(ANILIST_COLOR)
-    .setAuthor({ name: "AniList", iconURL: "https://anilist.co/img/icons/android-chrome-512x512.png" })
+    .setAuthor({ name: username, iconURL: "https://s4.anilist.co/file/anilistcdn/user/avatar/large/b5856766-5TBEOVvKeWcs.png" })
     .setTitle(title)
     .setURL(media?.siteUrl ?? "https://anilist.co")
     .setThumbnail(media?.coverImage.large ?? null)
     .setDescription(`Watched episode **${episode}${totalEpisodes}**`)
     .addFields({ name: "When", value: `<t:${activity.createdAt}:R>`, inline: true })
-    .setFooter({ text: `Activity #${activity.id}` });
 }
 
 export function startAniListWatcher(client: Client, options: AniListWatcherOptions): void {
@@ -61,7 +60,6 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
 
       if (lastSeenId === null) {
         lastSeenId = sortedAscending[sortedAscending.length - 1]!.id;
-        console.log(`[anilist] Initialized state at activity #${lastSeenId}, will post new activity going forward.`);
         return;
       }
 
@@ -73,13 +71,12 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
 
       const channel = await client.channels.fetch(options.channelId).catch(() => null);
       if (!channel || !channel.isSendable()) {
-        console.error(`[anilist] Configured channel ${options.channelId} is not a sendable text channel.`);
         return;
       }
 
       for (const activity of newActivities) {
         if (EPISODE_STATUS_PATTERN.test(activity.status) && activity.media) {
-          await channel.send({ embeds: [buildEpisodeEmbed(activity)] });
+          await channel.send({ embeds: [buildEpisodeEmbed(activity, options.username)] });
         }
       }
 

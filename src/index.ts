@@ -62,7 +62,12 @@ client.on("interactionCreate", async (interaction: any) => {
 (async () => {
     try {
         await client.login(DISCORD_TOKEN);
-        console.log("Yoru logged in successfully at " + new Date().toLocaleString());
+        console.log("My Wife logged in successfully at " + new Date().toLocaleString());
+        startAniListWatcher(client, {
+            username: ANILIST.USERNAME,
+            channelId: ANILIST.ANIME_CHANNEL_ID,
+            intervalMs: ANILIST.CHECK_INTERVAL_MS
+        });
     } catch (error) {
         console.error(`Error: ${error}`);
     }
