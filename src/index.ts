@@ -4,6 +4,7 @@ const { Client, GatewayIntentBits, Partials, ActivityType } = require("discord.j
 const commandHandler = require("./handler/commandHandler");
 import { registerPingCommands } from './handler/PingCommandHandler';
 import { startAniListWatcher } from './anilist/watcher';
+import { initErrorLogger, logErrorToDiscord } from './utils/errorLogger';
 import { ANILIST } from './config';
 
 
@@ -63,6 +64,7 @@ client.on("interactionCreate", async (interaction: any) => {
     try {
         await client.login(DISCORD_TOKEN);
         console.log("My Wife logged in successfully at " + new Date().toLocaleString());
+        initErrorLogger(client);
         startAniListWatcher(client, {
             username: ANILIST.USERNAME,
             channelId: ANILIST.ANIME_CHANNEL_ID,
@@ -70,6 +72,7 @@ client.on("interactionCreate", async (interaction: any) => {
         });
     } catch (error) {
         console.error(`Error: ${error}`);
+        await logErrorToDiscord("startup", error);
     }
 })();
 

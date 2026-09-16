@@ -1,5 +1,6 @@
 import { EmbedBuilder, type Client } from "discord.js";
 import { fetchAnimeListActivities, resolveUserId } from "./anilistClient";
+import { logErrorToDiscord } from "../utils/errorLogger";
 import type { AniListListActivity } from "./types";
 
 const ANILIST_AVATAR_URL = "https://s4.anilist.co/file/anilistcdn/user/avatar/large/b5856766-5TBEOVvKeWcs.png";
@@ -140,7 +141,7 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
 
       lastSeenId = newActivities[newActivities.length - 1]!.id;
     } catch (err) {
-      console.error("[anilist] Poll failed:", err instanceof Error ? err.message : err);
+      await logErrorToDiscord("anilist watcher", err);
     } finally {
       polling = false;
     }
