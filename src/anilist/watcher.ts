@@ -82,7 +82,7 @@ function buildActivityEmbed(activity: AniListListActivity, username: string, kin
 
   return new EmbedBuilder()
     .setColor(config.color)
-    .setAuthor({ name: username, iconURL: ANILIST_AVATAR_URL })
+    .setAuthor({ name: username, iconURL: ANILIST_AVATAR_URL ,url: `https://anilist.co/user/${encodeURIComponent(username)}`})
     .setTitle(title)
     .setURL(media?.siteUrl ?? "https://anilist.co")
     .setThumbnail(media?.coverImage.large ?? null)
