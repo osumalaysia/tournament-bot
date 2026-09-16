@@ -1,16 +1,32 @@
 const fs = require("fs");
 const path = require("path");
 
-module.exports = (client:any) => {
+module.exports = (client: any) => {
     client.commands = new Map();
 
-    const commandsPath = path.join(__dirname, "../commands");
-    const commandFiles = fs.readdirSync(commandsPath).filter((file: string) => 
-        (file.endsWith(".js") || file.endsWith(".ts")) && !file.endsWith(".d.ts")
-    );
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        const command = require(filePath);
+    const commandsPath = path.join(__dirname, "../slash_commands");
+
+    const getAllFiles = (dirPath: string): string[] => {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+
+        return entries.flatMap((entry: any) => {
+            const fullPath = path.join(dirPath, entry.name);
+
+            if (entry.isDirectory()) {
+                return getAllFiles(fullPath);
+            }
+
+            const isValid = (entry.name.endsWith(".js") || entry.name.endsWith(".ts")) && !entry.name.endsWith(".d.ts");
+            return isValid ? [fullPath] : [];
+        });
+    };
+
+    const commandFiles = getAllFiles(commandsPath);
+
+    for (const filePath of commandFiles) {
+        let command = require(filePath);
+
+        if (command.default) command = command.default;
 
         if ("data" in command && "execute" in command) {
             client.commands.set(command.data.name, command);
@@ -21,4 +37,4 @@ module.exports = (client:any) => {
     }
 };
 
-export {};
+export { };
