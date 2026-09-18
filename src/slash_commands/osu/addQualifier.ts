@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder, GuildMemberRoleManager, ChatInputCommandInteraction } = require("discord.js");
-const { getDoc } = require("../handler/googleSheetAuth");
+const { getDoc } = require("../../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
-const { CONFIG, QUALIFIER } = require("../config");
+const { CONFIG, QUALIFIER } = require("../../config");
+import { logErrorToDiscord } from "../../utils/errorLogger";
 
 const cooldownMap = new Map<string, number>();
 
@@ -159,7 +160,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
     }
 
   } catch (error) {
-    console.error("Signup Command Exception:", error);
+    await logErrorToDiscord("addQualifier command", error);
     await interaction.editReply({
       content: `An error occurred while updating the schedule. <@${CONFIG.DEVELOPER_ID}> has been notified.`
     });

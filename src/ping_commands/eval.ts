@@ -1,5 +1,6 @@
 import type { pingCommand } from './types';
 import * as Util from 'util';
+import { logErrorToDiscord } from '../utils/errorLogger';
 
 const command: pingCommand = {
   name: 'eval',
@@ -13,6 +14,7 @@ const command: pingCommand = {
       const returned = await eval(`(async () => {\n${code}\n})`)();
       await msg.channel.send('```js\n' + Util.inspect(returned).substring(0, 2000 - 10) + '\n```');
     } catch (err: any) {
+      await logErrorToDiscord('eval command', err);
       await msg.channel.send('```js\n' + err.stack.substring(0, 2000 - 10) + '\n```');
     }
   },

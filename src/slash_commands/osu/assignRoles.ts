@@ -1,4 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, Role, PermissionFlagsBits } from "discord.js";
+import { logErrorToDiscord } from "../../utils/errorLogger";
 
 export const data = new SlashCommandBuilder()
     .setName("add-roles")
@@ -37,7 +38,7 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             await member.roles.add(roleObj);
             success.push(`${member.user.tag} (\`${id}\`)`);
         } catch (error: any) {
-            console.error(`Failed to add role for ID ${id}:`, error);
+            logErrorToDiscord(`assignRoles command (id ${id})`, error);
             failed.push(id);
         }
     }

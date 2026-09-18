@@ -50,13 +50,24 @@ client.on("interactionCreate", async (interaction: any) => {
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error(`Error executing ${interaction.commandName}`);
-        console.error(error);
+        await logErrorToDiscord(`command:${interaction.commandName}`, error);
         await interaction.reply({
             content: "There was an error while executing this command!",
             ephemeral: true,
         });
     }
+});
+
+process.on("uncaughtException", (error) => {
+    logErrorToDiscord("uncaughtException", error);
+});
+
+process.on("unhandledRejection", (reason) => {
+    logErrorToDiscord("unhandledRejection", reason);
+});
+
+client.on("error", (error: unknown) => {
+    logErrorToDiscord("client", error);
 });
 
 

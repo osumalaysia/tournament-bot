@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, MessageFlags } = require("discord.js");
-const { getDoc } = require("../handler/googleSheetAuth");
+const { getDoc } = require("../../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
 const { ChatInputCommandInteraction } = require("discord.js");
+import { logErrorToDiscord } from "../../utils/errorLogger";
 
 const CONFIG = {
     SHEET_START_ROW: 3,
@@ -272,7 +273,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
             await staffSheet.loadCells("A1:B100");
             await sheet.loadCells(`A${CONFIG.SHEET_START_ROW}:K${CONFIG.SHEET_END_ROW}`);
         } catch (err) {
-            console.error("Error loading sheet rows:", err);
+            await logErrorToDiscord("rescheduleHandler (load sheets)", err);
             throw new Error("Failed to load sheet data.");
         }
 
@@ -402,7 +403,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
                     collector.stop("accepted");
                 }
             } catch (error: any) {
-                console.error("Error processing interaction:", error);
+                await logErrorToDiscord("rescheduleHandler (button interaction)", error);
                 await i.followUp({
                     content: `An error occurred: ${error.message}`,
                     flags: [MessageFlags.Ephemeral]
@@ -431,7 +432,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction) {
         });
 
     } catch (error: any) {
-        console.error("Error in reschedule command:", error);
+        await logErrorToDiscord("rescheduleHandler command", error);
 
         if (interaction.deferred) {
             await interaction.editReply({

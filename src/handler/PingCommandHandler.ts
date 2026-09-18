@@ -3,6 +3,7 @@ import * as path from 'path';
 import type { Client, Message, TextChannel } from 'discord.js';
 import type { pingCommand, pingMessage } from '../ping_commands/types';
 import { CONFIG } from '../config';
+import { logErrorToDiscord } from '../utils/errorLogger';
 
 export function registerPingCommands(client: Client): void {
   const commands = new Map<string, pingCommand>();
@@ -41,6 +42,7 @@ export function registerPingCommands(client: Client): void {
 
       await command.execute(msg as unknown as pingMessage, args, client);
     } catch (err: any) {
+      await logErrorToDiscord('ping command', err);
       const channel = msg.channel as TextChannel;
       await channel.send(`\`\`\`js\n${err.stack}\n\`\`\``);
     }

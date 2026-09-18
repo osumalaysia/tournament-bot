@@ -1,7 +1,8 @@
 const { SlashCommandBuilder, EmbedBuilder,ChatInputCommandInteraction } = require("discord.js");
-const { getDoc } = require("../handler/googleSheetAuth");
+const { getDoc } = require("../../handler/googleSheetAuth");
 const { GoogleSpreadsheetWorksheet } = require("google-spreadsheet");
-const { CONFIG,QUALIFIER } = require("../config");
+const { CONFIG,QUALIFIER } = require("../../config");
+import { logErrorToDiscord } from "../../utils/errorLogger";
 const cooldownMap = new Map<string, number>();
 
 export const data = new SlashCommandBuilder()
@@ -125,7 +126,7 @@ export async function execute(interaction: typeof ChatInputCommandInteraction): 
       await logChannel.send({ embeds: [embed] });
     }
   } catch (error) {
-    console.error("Error updating qualifier sheet:", error);
+    await logErrorToDiscord("dropQualifier command", error);
     await interaction.editReply({ content: "An error occurred while trying to update the schedule. Please try again later." });
   }
 }

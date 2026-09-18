@@ -1,5 +1,5 @@
 const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
-const { CONFIG } = require("../config");
+const { CONFIG } = require("../../config");
 
 const TOURNAMENT_NAME = "o!M4T 2026";
 const EMOJI_GUILD_ID = "905398607895752735";

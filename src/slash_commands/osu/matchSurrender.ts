@@ -4,7 +4,7 @@ const TOURNAMENT_NAME = "o!M4T 2026";
 const EMOJI_GUILD_ID = "905398607895752735";
 const TARGET_CHANNEL_ID = "1457807376546533386";
 const ROLE_ID = "1457806106058297518";
-const { CONFIG } = require("../config");
+const { CONFIG } = require("../../config");
 
 async function makeEmoji(emojiGuild: any, userId: any, name = "profile") {
     try {
