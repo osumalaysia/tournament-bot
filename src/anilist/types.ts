@@ -9,6 +9,7 @@ export interface AniListMedia {
   siteUrl: string;
   episodes: number | null;
   title: AniListMediaTitle;
+  bannerImage: string | null;
   coverImage: {
     large: string | null;
   };

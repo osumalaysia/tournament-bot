@@ -88,7 +88,8 @@ function buildActivityEmbed(activity: AniListListActivity, username: string, kin
     .setURL(media?.siteUrl ?? "https://anilist.co")
     .setThumbnail(media?.coverImage.large ?? null)
     .setDescription(config.describe(title, activity))
-    .addFields({ name: "When", value: `<t:${activity.createdAt}:R>`, inline: true });
+    .addFields({ name: "When", value: `<t:${activity.createdAt}:R>`, inline: true })
+    .setImage(media?.bannerImage ?? null);;
 }
 
 export function startAniListWatcher(client: Client, options: AniListWatcherOptions): void {

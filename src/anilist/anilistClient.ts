@@ -17,7 +17,7 @@ const ACTIVITIES_QUERY = `
   query ($userId: Int, $perPage: Int) {
     Page(page: 1, perPage: $perPage) {
       pageInfo {
-        hasNextPage
+        hasNextPageq
       }
       activities(userId: $userId, type: ANIME_LIST, sort: ID_DESC) {
         ... on ListActivity {
@@ -30,6 +30,7 @@ const ACTIVITIES_QUERY = `
             id
             siteUrl
             episodes
+            bannerImage
             title {
               userPreferred
               romaji
