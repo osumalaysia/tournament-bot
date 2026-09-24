@@ -9,7 +9,7 @@ type ActivityKind = "episode" | "completed" | "planning" | "dropped" | "paused" 
 
 interface ActivityKindConfig {
   color: number;
-  describe(title: string, activity: AniListListActivity): string;
+  describe(activity: AniListListActivity): string;
 }
 
 const STATUS_KIND_MATCHERS: Array<[ActivityKind, RegExp]> = [
@@ -24,27 +24,27 @@ const STATUS_KIND_MATCHERS: Array<[ActivityKind, RegExp]> = [
 const STATUS_KIND_CONFIG: Record<ActivityKind, ActivityKindConfig> = {
   episode: {
     color: 0x02a9ff,
-    describe: (_title, activity) => `Watched ${formatEpisodeProgress(activity.progress, activity.media?.episodes ?? null)}`,
+    describe: (activity) => `Watched ${formatEpisodeProgress(activity.progress, activity.media?.episodes ?? null)}`,
   },
   completed: {
     color: 0x4caf50,
-    describe: (title) => `Completed **${title}**`,
+    describe: (activity) => (activity.media?.episodes ? `Completed ${activity.media.episodes} eps` : "Completed"),
   },
   planning: {
     color: 0x9c59d1,
-    describe: (title) => `Added **${title}** to Plan to Watch`,
+    describe: () => "Plan to Watch",
   },
   dropped: {
     color: 0xe74c3c,
-    describe: (title) => `Dropped **${title}**`,
+    describe: () => "Dropped",
   },
   paused: {
     color: 0xf1c40f,
-    describe: (title) => `Paused **${title}**`,
+    describe: () => "Paused",
   },
   rewatching: {
     color: 0x02a9ff,
-    describe: (title) => `Started rewatching **${title}**`,
+    describe: () => "Rewatching",
   },
 };
 
@@ -63,12 +63,12 @@ function formatEpisodeProgress(progress: string | null, totalEpisodes: number | 
   const totalSuffix = totalEpisodes ? ` / ${totalEpisodes}` : "";
   const rangeMatch = progress?.match(/(\d+)\s*-\s*(\d+)/);
   if (rangeMatch) {
-    return `episodes **${rangeMatch[1]} - ${rangeMatch[2]}${totalSuffix}**`;
+    return `episodes ${rangeMatch[1]} - ${rangeMatch[2]}${totalSuffix}`;
   }
 
   const singleMatch = progress?.match(/(\d+)\s*$/);
   const episode = singleMatch ? singleMatch[1]! : "?";
-  return `episode **${episode}${totalSuffix}**`;
+  return `episode ${episode}${totalSuffix}`;
 }
 
 function resolveMediaTitle(activity: AniListListActivity): string {
@@ -79,17 +79,18 @@ function resolveMediaTitle(activity: AniListListActivity): string {
 function buildActivityEmbed(activity: AniListListActivity, username: string, kind: ActivityKind): EmbedBuilder {
   const media = activity.media;
   const config = STATUS_KIND_CONFIG[kind];
-  const title = resolveMediaTitle(activity);
 
   return new EmbedBuilder()
     .setColor(config.color)
-    .setAuthor({ name: username, iconURL: ANILIST_AVATAR_URL ,url: `https://anilist.co/user/${encodeURIComponent(username)}`})
-    .setTitle(title)
+    .setAuthor({ name: username, iconURL: ANILIST_AVATAR_URL, url: `https://anilist.co/user/${encodeURIComponent(username)}` })
+    .setTitle(resolveMediaTitle(activity))
     .setURL(media?.siteUrl ?? "https://anilist.co")
     .setThumbnail(media?.coverImage.large ?? null)
-    .setDescription(config.describe(title, activity))
-    .addFields({ name: "When", value: `<t:${activity.createdAt}:R>`, inline: true })
-    .setImage(media?.bannerImage ?? null);;
+    .setImage(media?.bannerImage ?? null)
+    .addFields(
+      { name: "Status", value: config.describe(activity), inline: true },
+      { name: "Date", value: `<t:${activity.createdAt}:R>`, inline: true },
+    );
 }
 
 export function startAniListWatcher(client: Client, options: AniListWatcherOptions): void {
