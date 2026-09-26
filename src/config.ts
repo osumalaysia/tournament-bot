@@ -32,5 +32,4 @@ export const EMBED = {
   FXTWITTER_API_URL: "https://api.fxtwitter.com",
   TRUSTED_MEDIA_HOST_SUFFIXES: [".fbcdn.net", ".cdninstagram.com", ".twimg.com"],
   CRAWLER_USER_AGENT: "Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)",
-  DISABLED_GUILD_IDS: ["1215388064512475176"] as string[],
 }
