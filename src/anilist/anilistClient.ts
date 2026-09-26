@@ -1,6 +1,6 @@
+import { ANILIST } from "../config";
 import type { AniListActivityPage, AniListListActivity, AniListUserResponse } from "./types";
 
-const ANILIST_API_URL = "https://graphql.anilist.co";
 const MAX_RETRIES = 4;
 const DEFAULT_BACKOFF_MS = 30_000;
 
@@ -55,7 +55,7 @@ async function request<T>(query: string, variables: Record<string, unknown>): Pr
     let response: Response;
 
     try {
-      response = await fetch(ANILIST_API_URL, {
+      response = await fetch(ANILIST.API_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

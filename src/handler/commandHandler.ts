@@ -1,40 +1,36 @@
-const fs = require("fs");
-const path = require("path");
+import * as fs from "fs";
+import * as path from "path";
+import type { ChatInputCommandInteraction, SlashCommandBuilder } from "discord.js";
 
-module.exports = (client: any) => {
-    client.commands = new Map();
+export interface SlashCommand {
+    data: Pick<SlashCommandBuilder, "name" | "toJSON">;
+    execute: (interaction: ChatInputCommandInteraction) => Promise<unknown>;
+}
 
-    const commandsPath = path.join(__dirname, "../slash_commands");
+export const SLASH_COMMANDS_DIR = path.join(__dirname, "../slash_commands");
 
-    const getAllFiles = (dirPath: string): string[] => {
-        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+export function findCommandFiles(dirPath: string = SLASH_COMMANDS_DIR): string[] {
+    return fs.readdirSync(dirPath, { withFileTypes: true }).flatMap((entry) => {
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) return findCommandFiles(fullPath);
 
-        return entries.flatMap((entry: any) => {
-            const fullPath = path.join(dirPath, entry.name);
+        const isValid = (entry.name.endsWith(".js") || entry.name.endsWith(".ts")) && !entry.name.endsWith(".d.ts");
+        return isValid ? [fullPath] : [];
+    });
+}
 
-            if (entry.isDirectory()) {
-                return getAllFiles(fullPath);
-            }
+export function loadCommands(): Map<string, SlashCommand> {
+    const commands = new Map<string, SlashCommand>();
 
-            const isValid = (entry.name.endsWith(".js") || entry.name.endsWith(".ts")) && !entry.name.endsWith(".d.ts");
-            return isValid ? [fullPath] : [];
-        });
-    };
-
-    const commandFiles = getAllFiles(commandsPath);
-
-    for (const filePath of commandFiles) {
-        let command = require(filePath);
-
-        if (command.default) command = command.default;
+    for (const filePath of findCommandFiles()) {
+        const command = require(filePath);
 
         if ("data" in command && "execute" in command) {
-            client.commands.set(command.data.name, command);
+            commands.set(command.data.name, command);
             console.log(`Loaded command: ${command.data.name}`);
         } else {
             console.warn(`The command at ${filePath} is missing a required "data" or "execute" property.`);
         }
     }
-};
-
-export { };
+    return commands;
+}

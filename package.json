@@ -12,6 +12,8 @@
     "start:prod": "node dist/deploy.js && node dist/index.js"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
 }

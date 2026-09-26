@@ -1,16 +1,12 @@
-require("dotenv").config();
-const { DISCORD_TOKEN } = process.env;
-const { Client, GatewayIntentBits, Partials, ActivityType } = require("discord.js");
-const commandHandler = require("./handler/commandHandler");
+import "dotenv/config";
+import { Client, GatewayIntentBits, Partials, ActivityType, MessageFlags } from "discord.js";
+import { loadCommands } from "./handler/commandHandler";
 import { registerPingCommands } from './handler/PingCommandHandler';
 import { startAniListWatcher } from './anilist/watcher';
 import { initErrorLogger, logErrorToDiscord } from './utils/errorLogger';
-import { ANILIST } from './config';
+import { ANILIST, CONFIG } from './config';
+import { startEmbedBuilder } from "./embedBuilder/embedBuilder";
 
-
-function handleError(err: unknown): string {
-    return err instanceof Error ? err.stack || err.message : 'I Don\'t know what happened as well';
-}
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -29,18 +25,19 @@ const client = new Client({
         activities: [{
             name: '鷺澤有里栖 a(✿◠‿◠)',
             type: ActivityType.Streaming,
-            url: 'https://www.youtube.com/watch?v=0976Z1s0V1A&ab_channel=CircusOfficialChannel'
+            url: CONFIG.STREAM_URL
         }]
     }
 });
 
-commandHandler(client);
+const commands = loadCommands();
 registerPingCommands(client);
+startEmbedBuilder(client);
 
-client.on("interactionCreate", async (interaction: any) => {
-    if (!interaction.isCommand()) return;
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
 
-    const command = client.commands.get(interaction.commandName);
+    const command = commands.get(interaction.commandName);
 
     if (!command) {
         console.error(`No command matching ${interaction.commandName} was found.`);
@@ -51,10 +48,9 @@ client.on("interactionCreate", async (interaction: any) => {
         await command.execute(interaction);
     } catch (error) {
         await logErrorToDiscord(`command:${interaction.commandName}`, error);
-        await interaction.reply({
-            content: "There was an error while executing this command!",
-            ephemeral: true,
-        });
+        const errorReply = { content: "There was an error while executing this command!", flags: MessageFlags.Ephemeral } as const;
+        const respond = interaction.replied || interaction.deferred ? interaction.followUp(errorReply) : interaction.reply(errorReply);
+        await respond.catch(() => null);
     }
 });
 
@@ -73,7 +69,7 @@ client.on("error", (error: unknown) => {
 
 (async () => {
     try {
-        await client.login(DISCORD_TOKEN);
+        await client.login(process.env.DISCORD_TOKEN);
         console.log("My Wife logged in successfully at " + new Date().toLocaleString());
         initErrorLogger(client);
         startAniListWatcher(client, {

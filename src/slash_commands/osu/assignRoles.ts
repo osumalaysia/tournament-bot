@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction, GuildMember, Role, PermissionFlagsBits } from "discord.js";
+import { SlashCommandBuilder, ChatInputCommandInteraction, Role, PermissionFlagsBits, MessageFlags, RESTJSONErrorCodes } from "discord.js";
 import { logErrorToDiscord } from "../../utils/errorLogger";
 
 export const data = new SlashCommandBuilder()
@@ -19,15 +19,15 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
     const roleObj = interaction.options.getRole("role") as Role;
     const rawIds = interaction.options.getString("ids") ?? "";
-    const ids = rawIds.split(" ").map(id => id.trim()).filter(id => id.length > 0);
+    const ids = rawIds.split(/[\s,]+/).filter(id => id.length > 0);
     const guild = interaction.guild;
 
     if (!guild) {
-        await interaction.reply({ content: "This must be used in a server.", ephemeral: true });
+        await interaction.reply({ content: "This must be used in a server.", flags: MessageFlags.Ephemeral });
         return;
     }
 
-    await interaction.deferReply({ ephemeral: false });
+    await interaction.deferReply();
 
     const success: string[] = [];
     const failed: string[] = [];
@@ -38,7 +38,9 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
             await member.roles.add(roleObj);
             success.push(`${member.user.tag} (\`${id}\`)`);
         } catch (error: any) {
-            logErrorToDiscord(`assignRoles command (id ${id})`, error);
+            if (error.code !== RESTJSONErrorCodes.UnknownMember) {
+                await logErrorToDiscord(`assignRoles command (id ${id})`, error);
+            }
             failed.push(id);
         }
     }
@@ -60,5 +62,4 @@ export async function execute(interaction: ChatInputCommandInteraction): Promise
     }
 }
 
-module.exports = { data, execute };
 

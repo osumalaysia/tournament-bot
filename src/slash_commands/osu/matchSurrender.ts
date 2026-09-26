@@ -1,93 +1,37 @@
-const { EmbedBuilder, SlashCommandBuilder } = require('discord.js');
+import { EmbedBuilder, SlashCommandBuilder, type ChatInputCommandInteraction } from "discord.js";
+import { TOURNAMENT } from "../../config";
+import { ensureReferee, postResult, withProfileEmojis } from "../../utils/tournament";
 
-const TOURNAMENT_NAME = "o!M4T 2026";
-const EMOJI_GUILD_ID = "905398607895752735";
-const TARGET_CHANNEL_ID = "1457807376546533386";
-const ROLE_ID = "1457806106058297518";
-const { CONFIG } = require("../../config");
+const REQUIRED_OPTIONS: Array<[name: string, description: string]> = [
+    ["matchid", "Match ID from the schedule sheet tab"],
+    ["stages", "Stages of the match"],
+    ["forfeit_player", "Player 1"],
+    ["winner_player", "Player 2"],
+    ["player1seed", "Player 1 Seed"],
+    ["player2seed", "Player 2 Seed"],
+    ["forfeit_id", "Player 1 ID"],
+    ["winner_id", "Player 2 ID"],
+];
 
-async function makeEmoji(emojiGuild: any, userId: any, name = "profile") {
-    try {
-        const res = await fetch(`https://a.ppy.sh/${userId}`);
-        const buf = Buffer.from(await res.arrayBuffer());
-        return await emojiGuild.emojis.create({ attachment: buf, name });
-    } catch {
-        return null;
-    }
+export const data = new SlashCommandBuilder().setName("forfeit").setDescription("output result");
+for (const [name, description] of REQUIRED_OPTIONS) {
+    data.addStringOption((option) => option.setName(name).setDescription(description).setRequired(true));
 }
 
-export const data = new SlashCommandBuilder()
-    .setName("forfeit")
-    .setDescription("output result")
-    .addStringOption((matchid: any) =>
-        matchid.setName("matchid").setDescription("Match ID from the schedule sheet tab").setRequired(true)
-    )
-    .addStringOption((stages: any) =>
-        stages.setName("stages").setDescription("Stages of the match").setRequired(true)
-    )
-    .addStringOption((forfeit: any) =>
-        forfeit.setName("forfeit_player").setDescription("Player 1").setRequired(true)
-    )
-    .addStringOption((winner: any) =>
-        winner.setName("winner_player").setDescription("Player 2").setRequired(true)
-    )
-    .addStringOption((forfeitSeed: any) =>
-        forfeitSeed.setName("player1seed").setDescription("Player 1 Seed").setRequired(true)
-    )
-    .addStringOption((winnerSeed: any) =>
-        winnerSeed.setName("player2seed").setDescription("Player 2 Seed").setRequired(true)
-    )
-    .addStringOption((forfeitId: any) =>
-        forfeitId.setName("forfeit_id").setDescription("Player 1 ID").setRequired(true)
-    )
-    .addStringOption((winnerId: any) =>
-        winnerId.setName("winner_id").setDescription("Player 2 ID").setRequired(true)
-    );
+export async function execute(interaction: ChatInputCommandInteraction): Promise<void> {
+    if (!(await ensureReferee(interaction))) return;
 
-export async function execute(interaction: any) {
+    const get = (name: string) => interaction.options.getString(name, true);
+    const matchId = get("matchid");
 
-    if (!interaction.member.roles.cache.has(ROLE_ID) && interaction.user.id !== CONFIG.DEVELOPER_ID) {
-    await interaction.reply({ content: "Don't be an asshole", flags: 1 << 6 });
-    return;
-    } else if (!interaction.inGuild()) {
-        await interaction.reply({ content: "Thoughts you can use it in a dm huh!" });
-        return;
-    }
+    await withProfileEmojis(interaction, [get("forfeit_id"), get("winner_id")], async ([forfeitProfile, winnerProfile]) => {
+        const resultEmbed = new EmbedBuilder()
+            .setAuthor({ name: `${get("stages")}: Match ${matchId}` })
+            .setTitle(`Win by Default for ${get("winner_player")} #${get("player2seed")} ${winnerProfile}`)
+            .setDescription(`**${get("forfeit_player")}** #${get("player1seed")} ${forfeitProfile} has forfeited the match.`)
+            .setFooter({ text: TOURNAMENT.NAME })
+            .setTimestamp();
 
-    const emojiGuild = interaction.client.guilds.cache.get(EMOJI_GUILD_ID)
-    const channel = interaction.client.channels.cache.get(TARGET_CHANNEL_ID)
-
-    const iconURL = interaction.guild?.iconURL({ size: 512, extension: "png" }) || undefined;
-    const [forfeitProfile, winnerProfile] = await Promise.all([
-        makeEmoji(emojiGuild, interaction.options.getString("forfeit_id"), "p1"),
-        makeEmoji(emojiGuild, interaction.options.getString("winner_id"), "p2"),
-    ]);
-
-    const data = {
-        matchId: interaction.options.getString("matchid"),
-        stages: interaction.options.getString("stages"),
-        forfeit: interaction.options.getString("forfeit_player"),
-        winner: interaction.options.getString("winner_player"),
-        forfeitSeed: interaction.options.getString("player1seed"),
-        winnerSeed: interaction.options.getString("player2seed"),
-        forfeitId: interaction.options.getString("forfeit_id"),
-        winnerId: interaction.options.getString("winner_id"),
-    };
-
-    const resultEmbed = new EmbedBuilder()
-        .setAuthor({ name: `${data.stages}: Match ${data.matchId}` })
-        .setTitle(`Win by Default for ${data.winner} #${data.winnerSeed} ${winnerProfile || ""}`)
-        .setDescription(
-            `**${data.forfeit}** #${data.forfeitSeed} ${forfeitProfile || ""} has forfeited the match.`
-        )
-        .setFooter({ text: `${TOURNAMENT_NAME}` })
-        .setTimestamp();
-
-    await channel.send({ embeds: [resultEmbed] });
-    await interaction.reply({ content: `Match ${data.matchId} submitted successfully!` });
-    await Promise.all([forfeitProfile, winnerProfile].map(emoji => emoji.delete()));
-
+        await postResult(interaction, matchId, resultEmbed);
+    });
 }
-
-module.exports = { data, execute };
-export { };

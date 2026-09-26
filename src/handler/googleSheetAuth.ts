@@ -1,29 +1,21 @@
-const { GoogleSpreadsheet } = require("google-spreadsheet");
-const { JWT } = require("google-auth-library");
-const { GOOGLE_SERVICE_TOKEN_JSON } = process.env;
+import { GoogleSpreadsheet } from "google-spreadsheet";
+import { JWT } from "google-auth-library";
 
+const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_TOKEN_JSON || "{}");
 const serviceAccountAuth = new JWT({
-    email: JSON.parse(GOOGLE_SERVICE_TOKEN_JSON || "{}").client_email,
-    key: JSON.parse(GOOGLE_SERVICE_TOKEN_JSON || "{}").private_key,
+    email: serviceAccount.client_email,
+    key: serviceAccount.private_key,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
 });
 
-const docs = new Map<string, any>();
+const docs = new Map<string, GoogleSpreadsheet>();
 
-const getDoc = async (spreadsheetId: string) => {
-  if (!docs.has(spreadsheetId)) {
-    const newDoc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth);
-    await newDoc.loadInfo();
-    docs.set(spreadsheetId, newDoc);
+export async function getDoc(spreadsheetId: string): Promise<GoogleSpreadsheet> {
+  let doc = docs.get(spreadsheetId);
+  if (!doc) {
+    doc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth);
+    await doc.loadInfo();
+    docs.set(spreadsheetId, doc);
   }
-  return docs.get(spreadsheetId);
-}
-
-const loadDoc = async (spreadsheetId: string) => {
-  const doc = new GoogleSpreadsheet(spreadsheetId, serviceAccountAuth);
-  await doc.loadInfo();
   return doc;
-};
-
-module.exports = { getDoc, loadDoc };
-export {};
+}

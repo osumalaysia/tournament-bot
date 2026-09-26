@@ -21,7 +21,7 @@ export async function logErrorToDiscord(source: string, error: unknown): Promise
   const embed = new EmbedBuilder()
     .setColor(0xe74c3c)
     .setTitle(`Error in ${source}`)
-    .setDescription(message.slice(0, 4096))
+    .setDescription((message || "(no message)").slice(0, 4096))
     .setTimestamp();
 
   if (stack) {

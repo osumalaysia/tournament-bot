@@ -1,18 +1,15 @@
-import type { Message } from 'discord.js';
-import type { pingMessage, pingCommand } from './types';
+import type { PingCommand } from '../handler/PingCommandHandler';
 import { update } from '../stats/stats_util';
+import { getDoc } from '../handler/googleSheetAuth';
+import { STATS } from '../config';
 
-const { loadDoc } = require('../handler/googleSheetAuth');
-const { STATS } = require('../config');
-
-const command: pingCommand = {
+const command: PingCommand = {
   name: 'update',
 
-  async execute(msg: pingMessage, _args: string[], _client: any) {
-    const doc = await loadDoc(STATS.SHEET_ID);
-    await update(doc, msg as any);
+  async execute(msg) {
+    const doc = await getDoc(STATS.SHEET_ID);
+    await update(doc, msg);
   },
 };
 
-module.exports = command;
-export {};
+export default command;

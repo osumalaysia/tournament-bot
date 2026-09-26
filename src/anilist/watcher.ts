@@ -1,9 +1,9 @@
 import { EmbedBuilder, type Client } from "discord.js";
+import { ANILIST } from "../config";
 import { fetchAnimeListActivities, resolveUserId } from "./anilistClient";
 import { logErrorToDiscord } from "../utils/errorLogger";
 import type { AniListListActivity } from "./types";
 
-const ANILIST_AVATAR_URL = "https://s4.anilist.co/file/anilistcdn/user/avatar/large/b5856766-5TBEOVvKeWcs.png";
 
 type ActivityKind = "episode" | "completed" | "planning" | "dropped" | "paused" | "rewatching";
 
@@ -82,7 +82,7 @@ function buildActivityEmbed(activity: AniListListActivity, username: string, kin
 
   return new EmbedBuilder()
     .setColor(config.color)
-    .setAuthor({ name: username, iconURL: ANILIST_AVATAR_URL, url: `https://anilist.co/user/${encodeURIComponent(username)}` })
+    .setAuthor({ name: username, iconURL: ANILIST.AVATAR_URL, url: `https://anilist.co/user/${encodeURIComponent(username)}` })
     .setTitle(resolveMediaTitle(activity))
     .setURL(media?.siteUrl ?? "https://anilist.co")
     .setThumbnail(media?.coverImage.large ?? null)
@@ -122,8 +122,6 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
         lastSeenId = sortedAscending[sortedAscending.length - 1]!.id;
         return;
       }
-
-      if (lastSeenId === null) return;
 
       const seenId = lastSeenId;
       const newActivities = sortedAscending.filter((activity) => activity.id > seenId);
