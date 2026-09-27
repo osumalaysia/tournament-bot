@@ -6,7 +6,7 @@ import {
   type Client,
   type Message,
 } from "discord.js";
-import { CONFIG } from "../config";
+import { CONFIG, EMBED } from "../config";
 import { logErrorToDiscord } from "../utils/errorLogger";
 import { fetchPostMedia } from "./instagramClient";
 import { findInstagramPosts, findXPosts, hasOnlyLinks } from "./links";
@@ -129,7 +129,10 @@ function findPosts(messageContent: string): PostHandler[] {
 }
 
 async function replyWithEmbeds(message: Message): Promise<void> {
-  if (message.author.id !== CONFIG.DEVELOPER_ID) return;
+  if (message.author.bot) return;
+  const isDeveloper = message.author.id === CONFIG.DEVELOPER_ID;
+  const isAllowedGuild = EMBED.ALLOWED_GUILD_IDS.includes(message.guildId ?? "");
+  if (!isDeveloper && !isAllowedGuild) return;
 
   const posts = findPosts(message.content);
   if (posts.length === 0 || !message.channel.isSendable()) return;
