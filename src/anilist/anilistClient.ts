@@ -37,7 +37,7 @@ const ACTIVITIES_QUERY = `
               english
             }
             coverImage {
-              large
+              extraLarge
             }
           }
         }

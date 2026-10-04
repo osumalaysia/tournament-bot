@@ -85,7 +85,7 @@ function buildActivityEmbed(activity: AniListListActivity, username: string, kin
     .setAuthor({ name: username, iconURL: ANILIST.AVATAR_URL, url: `https://anilist.co/user/${encodeURIComponent(username)}` })
     .setTitle(resolveMediaTitle(activity))
     .setURL(media?.siteUrl ?? "https://anilist.co")
-    .setThumbnail(media?.coverImage.large ?? null)
+    .setThumbnail(media?.coverImage.extraLarge ?? null)
     .setImage(media?.bannerImage ?? null)
     .addFields(
       { name: "Status", value: config.describe(activity), inline: true },

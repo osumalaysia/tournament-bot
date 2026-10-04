@@ -11,7 +11,7 @@ export interface AniListMedia {
   title: AniListMediaTitle;
   bannerImage: string | null;
   coverImage: {
-    large: string | null;
+    extraLarge: string | null;
   };
 }
 
