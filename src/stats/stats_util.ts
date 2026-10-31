@@ -1,5 +1,5 @@
-import type { GoogleSpreadsheet } from 'google-spreadsheet';
-import type { Message, TextChannel } from 'discord.js';
+import type { GoogleSpreadsheet, GoogleSpreadsheetWorksheet } from 'google-spreadsheet';
+import type { Message } from 'discord.js';
 import * as util from './util';
 import Cache from './cache';
 import * as formula from './formula';
@@ -20,15 +20,22 @@ function createTimerContext() {
   return { timer, entries };
 }
 
+function getSheet(doc: GoogleSpreadsheet, title: string): GoogleSpreadsheetWorksheet {
+  const sheet = doc.sheetsByTitle[title];
+  if (!sheet) throw new Error(`Sheet "${title}" not found`);
+  return sheet;
+}
+
 export async function update(doc: GoogleSpreadsheet, msg: Message): Promise<void> {
-  const channel = msg.channel as TextChannel;
+  const { channel } = msg;
+  if (!channel.isSendable()) throw new Error('Cannot send messages in this channel');
   const status = await channel.send('Updating....');
   const { timer, entries: timed } = createTimerContext();
 
   await doc.loadInfo();
 
-  const cacheSheet = doc.sheetsByTitle['Cache']!;
-  const outputSheet = doc.sheetsByTitle['_api']!;
+  const cacheSheet = getSheet(doc, 'Cache');
+  const outputSheet = getSheet(doc, '_api');
   const cache = new Cache(cacheSheet);
 
   const [importTimer, cacheTimer] = (
@@ -39,7 +46,7 @@ export async function update(doc: GoogleSpreadsheet, msg: Message): Promise<void
 
   const [mps] = await Promise.all([
     util
-      .loadY(doc.sheetsByTitle['MP Links']!, 8, 4)
+      .loadY(getSheet(doc, 'MP Links'), 8, 4)
       .then((data) => data.map((row) => row[0] as number))
       .finally(importTimer),
     cache.load().finally(cacheTimer),

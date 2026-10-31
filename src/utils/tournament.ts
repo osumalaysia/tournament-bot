@@ -1,5 +1,6 @@
 import type { ChatInputCommandInteraction, EmbedBuilder, Guild, GuildEmoji } from "discord.js";
 import { CONFIG, TOURNAMENT } from "../config";
+import { logErrorToDiscord } from "./errorLogger";
 
 export async function ensureReferee(interaction: ChatInputCommandInteraction): Promise<boolean> {
   if (!interaction.inCachedGuild()) {
@@ -14,9 +15,13 @@ export async function ensureReferee(interaction: ChatInputCommandInteraction): P
 }
 
 async function createProfileEmoji(emojiGuild: Guild | undefined, osuUserId: string, name: string): Promise<GuildEmoji | null> {
+  if (!emojiGuild) {
+    await logErrorToDiscord("createProfileEmoji", new Error(`Emoji guild ${TOURNAMENT.EMOJI_GUILD_ID} is not cached`));
+    return null;
+  }
   try {
     const avatar = await fetch(`https://a.ppy.sh/${osuUserId}`);
-    return await emojiGuild!.emojis.create({ attachment: Buffer.from(await avatar.arrayBuffer()), name });
+    return await emojiGuild.emojis.create({ attachment: Buffer.from(await avatar.arrayBuffer()), name });
   } catch {
     return null;
   }

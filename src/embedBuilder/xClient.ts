@@ -4,12 +4,12 @@ import type { XPost, XPostDetails } from "./types";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
-interface FxTwitterMedia {
+export interface FxTwitterMedia {
   type: string;
   url: string;
 }
 
-interface FxTwitterResponse {
+export interface FxTwitterResponse {
   tweet?: {
     text: string;
     likes: number;

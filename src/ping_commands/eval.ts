@@ -1,4 +1,3 @@
-import type { TextChannel } from 'discord.js';
 import * as Util from 'util';
 import type { PingCommand } from '../handler/PingCommandHandler';
 import { logErrorToDiscord } from '../utils/errorLogger';
@@ -7,7 +6,8 @@ const command: PingCommand = {
   name: 'eval',
 
   async execute(msg, args, _client) {
-    const channel = msg.channel as TextChannel;
+    const { channel } = msg;
+    if (!channel.isSendable()) throw new Error('Cannot send messages in this channel');
     try {
       const code = args
         .join(' ')
@@ -15,9 +15,10 @@ const command: PingCommand = {
 
       const returned = await eval(`(async () => {\n${code}\n})`)();
       await channel.send('```js\n' + Util.inspect(returned).substring(0, 2000 - 10) + '\n```');
-    } catch (err: any) {
+    } catch (err) {
       await logErrorToDiscord('eval command', err);
-      await channel.send('```js\n' + err.stack.substring(0, 2000 - 10) + '\n```');
+      const details = err instanceof Error && err.stack ? err.stack : String(err);
+      await channel.send('```js\n' + details.substring(0, 2000 - 10) + '\n```');
     }
   },
 };

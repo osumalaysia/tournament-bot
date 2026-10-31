@@ -3,8 +3,8 @@ import { REST, Routes } from "discord.js";
 import { findCommandFiles } from "./handler/commandHandler";
 
 const GUILD_IDS = ["905398607895752735", "1457804754720919565"];
-const DISCORD_TOKEN_DEPLOY = process.env.DISCORD_TOKEN!;
-const CLIENT_ID_DEPLOY = process.env.CLIENT_ID!;
+const DISCORD_TOKEN_DEPLOY = process.env.DISCORD_TOKEN;
+const CLIENT_ID_DEPLOY = process.env.CLIENT_ID;
 
 const commands: unknown[] = [];
 
@@ -17,10 +17,14 @@ for (const filePath of findCommandFiles()) {
     }
 }
 
-const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN_DEPLOY);
-
 (async () => {
     try {
+        if (!DISCORD_TOKEN_DEPLOY || !CLIENT_ID_DEPLOY) {
+            throw new Error("DISCORD_TOKEN and CLIENT_ID must be set");
+        }
+
+        const rest = new REST({ version: "10" }).setToken(DISCORD_TOKEN_DEPLOY);
+
         console.log("Clearing global application (/) commands to prevent overlapping...");
 
         await rest.put(Routes.applicationCommands(CLIENT_ID_DEPLOY), { body: [] });

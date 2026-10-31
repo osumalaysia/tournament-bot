@@ -23,7 +23,7 @@ const X_EMBED_COLOR = 0x1d9bf0;
 const COMPACT_NUMBER_FORMAT = new Intl.NumberFormat("en", { notation: "compact" });
 const WITHOUT_PINGS = { parse: [] };
 
-interface PreparedReply {
+export interface PreparedReply {
   content: string;
   embeds?: EmbedBuilder[];
   files?: AttachmentBuilder[];
@@ -31,13 +31,13 @@ interface PreparedReply {
   allowedMentions: typeof WITHOUT_PINGS;
 }
 
-interface ReplyContext {
+export interface ReplyContext {
   requesterId: string;
   uploadLimit: number;
   downloadBudget: DownloadBudget;
 }
 
-interface PostHandler {
+export interface PostHandler {
   fallbackReply: (replyContext: ReplyContext) => PreparedReply;
   prepareReplies: (replyContext: ReplyContext) => Promise<PreparedReply[]>;
 }

@@ -29,12 +29,8 @@ export interface OsuScore {
 
 
 export interface SheetRow {
-    get id(): string;
-    set id(value: string);
-    get value(): string;
-    set value(value: string);
-    delete(): Promise<void>;
-    save(): Promise<void>;
+    id: string;
+    value: string;
 }
 
 

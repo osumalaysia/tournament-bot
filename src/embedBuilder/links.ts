@@ -10,19 +10,27 @@ function removeHiddenLinks(messageContent: string): string {
 }
 
 export function findInstagramPosts(messageContent: string): InstagramPost[] {
-  return [...removeHiddenLinks(messageContent).matchAll(INSTAGRAM_POST_LINK_PATTERN)].map((linkMatch) => ({
-    shortcode: linkMatch[2]!,
-    originalLink: `https://www.instagram.com/${linkMatch[1]}`,
-    embedFixLink: `https://${EMBED_FIX_DOMAINS.INSTAGRAM}/${linkMatch[1]}`,
-  }));
+  return [...removeHiddenLinks(messageContent).matchAll(INSTAGRAM_POST_LINK_PATTERN)].flatMap(([, postPath, shortcode]) =>
+    postPath && shortcode
+      ? [{
+          shortcode,
+          originalLink: `https://www.instagram.com/${postPath}`,
+          embedFixLink: `https://${EMBED_FIX_DOMAINS.INSTAGRAM}/${postPath}`,
+        }]
+      : [],
+  );
 }
 
 export function findXPosts(messageContent: string): XPost[] {
-  return [...removeHiddenLinks(messageContent).matchAll(X_POST_LINK_PATTERN)].map((linkMatch) => ({
-    statusPath: linkMatch[1]!,
-    originalLink: `https://x.com/${linkMatch[1]}`,
-    embedFixLink: `https://${EMBED_FIX_DOMAINS.X}/${linkMatch[1]}`,
-  }));
+  return [...removeHiddenLinks(messageContent).matchAll(X_POST_LINK_PATTERN)].flatMap(([, statusPath]) =>
+    statusPath
+      ? [{
+          statusPath,
+          originalLink: `https://x.com/${statusPath}`,
+          embedFixLink: `https://${EMBED_FIX_DOMAINS.X}/${statusPath}`,
+        }]
+      : [],
+  );
 }
 
 export function hasOnlyLinks(messageContent: string): boolean {

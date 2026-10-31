@@ -11,7 +11,7 @@ import type {
 import { cleanMods, parseMods } from './mods';
 import * as util from './util';
 
-interface ParsedScore {
+export interface ParsedScore {
   matchName: string;
   matchID: number;
   scoreID: number;
@@ -90,9 +90,8 @@ function calculateGrade(
 
 function transposeRows<T extends CellValue[]>(rows: T[]): CellValue[][] {
   return rows.reduce<CellValue[][]>((output, list) => {
-    for (let col = 0; col < list.length; col++) {
-      if (!(col in output)) output[col] = [];
-      output[col]!.push(list[col]!);
+    for (const [col, value] of list.entries()) {
+      (output[col] ??= []).push(value);
     }
     return output;
   }, []);

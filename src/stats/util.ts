@@ -108,7 +108,7 @@ const appendDataRow = (
   if (!widths.length) return;
   output.push('│');
   widths.forEach((width, i) => {
-    const text = cells[i]!;
+    const text = cells[i] ?? '';
     output.push(' ', text, ' '.repeat(width - text.length + 1), '│');
   });
 };
@@ -137,7 +137,7 @@ export const buildTable = (...columns: string[][]): string => {
 
   let row = 0;
   const cells: string[] = [];
-  for (const col of columns) cells.push(col[row]!);
+  for (const col of columns) cells.push(col[row] ?? '');
   appendDataRow(output, maxWidths, cells.splice(0));
   output.push('\n');
 
@@ -146,10 +146,10 @@ export const buildTable = (...columns: string[][]): string => {
 
   ++row;
   do {
-    for (const col of columns) cells.push(col[row]!);
+    for (const col of columns) cells.push(col[row] ?? '');
     appendDataRow(output, maxWidths, cells.splice(0));
     output.push('\n');
-  } while (++row < columns[0]!.length);
+  } while (++row < (columns[0]?.length ?? 0));
 
   appendBorderLine(output, maxWidths, '└', '┴', '┘');
 

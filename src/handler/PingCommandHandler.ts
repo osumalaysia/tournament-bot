@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Client, Message, TextChannel } from 'discord.js';
+import type { Client, Message } from 'discord.js';
 import { CONFIG } from '../config';
 import { logErrorToDiscord } from '../utils/errorLogger';
 
@@ -33,17 +33,21 @@ export function registerPingCommands(client: Client): void {
       if (!msg.content.startsWith(mention)) return;
 
       const text = msg.content.slice(mention.length).trim();
-      const commandName = text.split(/\s/)[0]!.toLowerCase();
+      const [firstWord = ''] = text.split(/\s/);
+      const commandName = firstWord.toLowerCase();
       const args = text.slice(commandName.length).trim().split(' ');
 
       const command = commands.get(commandName);
       if (!command) return;
 
       await command.execute(msg, args, client);
-    } catch (err: any) {
+    } catch (err) {
       await logErrorToDiscord('ping command', err);
-      const channel = msg.channel as TextChannel;
-      await channel.send(`\`\`\`js\n${String(err?.stack ?? err).slice(0, 1980)}\n\`\`\``).catch(() => null);
+      const details = err instanceof Error && err.stack ? err.stack : String(err);
+      const { channel } = msg;
+      if (channel.isSendable()) {
+        await channel.send(`\`\`\`js\n${details.slice(0, 1980)}\n\`\`\``).catch(() => null);
+      }
     }
   });
 }

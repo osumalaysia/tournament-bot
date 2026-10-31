@@ -6,10 +6,10 @@ const EMBED_CONTEXT_JSON_PATTERN = /"contextJSON":("(?:[^"\\]|\\.)*")/;
 const REQUEST_TIMEOUT_MS = 15_000;
 
 export function extractMediaFromEmbedPage(embedPageHtml: string): MediaItem[] | null {
-  const contextJsonMatch = embedPageHtml.match(EMBED_CONTEXT_JSON_PATTERN);
-  if (!contextJsonMatch) return null;
+  const contextJson = embedPageHtml.match(EMBED_CONTEXT_JSON_PATTERN)?.[1];
+  if (!contextJson) return null;
 
-  const embedContext = JSON.parse(JSON.parse(contextJsonMatch[1]!));
+  const embedContext = JSON.parse(JSON.parse(contextJson));
   const postMedia: EmbedPageMediaNode | undefined = embedContext?.gql_data?.shortcode_media;
   if (!postMedia) return null;
 

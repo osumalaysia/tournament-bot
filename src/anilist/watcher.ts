@@ -5,9 +5,9 @@ import { logErrorToDiscord } from "../utils/errorLogger";
 import type { AniListListActivity } from "./types";
 
 
-type ActivityKind = "episode" | "completed" | "planning" | "dropped" | "paused" | "rewatching";
+export type ActivityKind = "episode" | "completed" | "planning" | "dropped" | "paused" | "rewatching";
 
-interface ActivityKindConfig {
+export interface ActivityKindConfig {
   color: number;
   describe(activity: AniListListActivity): string;
 }
@@ -114,12 +114,12 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
       }
 
       const activities = await fetchAnimeListActivities(userId, 25);
-      if (activities.length === 0) return;
-
       const sortedAscending = [...activities].sort((a, b) => a.id - b.id);
+      const newestActivity = sortedAscending.at(-1);
+      if (!newestActivity) return;
 
       if (lastSeenId === null) {
-        lastSeenId = sortedAscending[sortedAscending.length - 1]!.id;
+        lastSeenId = newestActivity.id;
         return;
       }
 
@@ -139,7 +139,7 @@ export function startAniListWatcher(client: Client, options: AniListWatcherOptio
         }
       }
 
-      lastSeenId = newActivities[newActivities.length - 1]!.id;
+      lastSeenId = newestActivity.id;
     } catch (err) {
       await logErrorToDiscord("anilist watcher", err);
     } finally {
